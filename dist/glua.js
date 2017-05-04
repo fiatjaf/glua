@@ -43815,63 +43815,37 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	$pkg.$init = $init;
 	return $pkg;
 })();
-$packages["honnef.co/go/js/console"] = (function() {
-	var $pkg = {}, $init, bytes, js, sliceType, c, Error;
-	bytes = $packages["bytes"];
-	js = $packages["github.com/gopherjs/gopherjs/js"];
-	sliceType = $sliceType($emptyInterface);
-	Error = function(objs) {
-		var $ptr, obj, objs;
-		(obj = c, obj.error.apply(obj, $externalize(objs, sliceType)));
-	};
-	$pkg.Error = Error;
-	$init = function() {
-		$pkg.$init = function() {};
-		/* */ var $f, $c = false, $s = 0, $r; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		$r = bytes.$init(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = js.$init(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		c = $global.console;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: $init }; } $f.$s = $s; $f.$r = $r; return $f;
-	};
-	$pkg.$init = $init;
-	return $pkg;
-})();
 $packages["github.com/fiatjaf/glua"] = (function() {
-	var $pkg = {}, $init, js, lua, console, sliceType, sliceType$1, funcType, mapType, funcType$1, ptrType, funcType$2, ptrType$1, main, lvalueFromInterface, lvalueToInterface;
+	var $pkg = {}, $init, js, lua, sliceType, funcType, mapType, funcType$1, sliceType$1, ptrType, funcType$2, ptrType$1, main, lvalueFromInterface, lvalueToInterface;
 	js = $packages["github.com/gopherjs/gopherjs/js"];
 	lua = $packages["github.com/yuin/gopher-lua"];
-	console = $packages["honnef.co/go/js/console"];
 	sliceType = $sliceType(lua.Options);
-	sliceType$1 = $sliceType($emptyInterface);
 	funcType = $funcType([$String], [], false);
 	mapType = $mapType($String, $emptyInterface);
 	funcType$1 = $funcType([mapType, $String], [], false);
+	sliceType$1 = $sliceType($emptyInterface);
 	ptrType = $ptrType(js.Object);
 	funcType$2 = $funcType([sliceType$1], [ptrType], true);
 	ptrType$1 = $ptrType(lua.LTable);
 	main = function() {
 		var $ptr, run, withGlobals;
 		run = (function $b(code) {
-			var $ptr, L, _arg, _r, _r$1, _r$2, code, err, $s, $deferred, $r;
-			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _arg = $f._arg; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; code = $f.code; err = $f.err; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
+			var $ptr, L, _r, _r$1, code, err, $s, $deferred, $r;
+			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _r = $f._r; _r$1 = $f._r$1; code = $f.code; err = $f.err; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
 			_r = lua.NewState(new sliceType([])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 			L = _r;
 			$deferred.push([$methodVal(L, "Close"), []]);
 			_r$1 = L.DoString(code); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			err = _r$1;
-			/* */ if (!($interfaceIsEqual(err, $ifaceNil))) { $s = 3; continue; }
-			/* */ $s = 4; continue;
-			/* if (!($interfaceIsEqual(err, $ifaceNil))) { */ case 3:
-				_r$2 = err.Error(); /* */ $s = 5; case 5: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-				_arg = new $String(_r$2);
-				$r = console.Error(new sliceType$1([new $String("error during Lua script execution"), _arg])); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			/* } */ case 4:
+			if (!($interfaceIsEqual(err, $ifaceNil))) {
+				$panic(err);
+			}
 			$s = -1; return;
-			/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.L = L; $f._arg = _arg; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f.code = code; $f.err = err; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
+			/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.L = L; $f._r = _r; $f._r$1 = _r$1; $f.code = code; $f.err = err; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
 		});
 		withGlobals = (function $b(globals, code) {
-			var $ptr, L, _arg, _entry, _i, _keys, _r, _r$1, _r$2, _ref, code, err, globals, name, value, $s, $deferred, $r;
-			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _arg = $f._arg; _entry = $f._entry; _i = $f._i; _keys = $f._keys; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _ref = $f._ref; code = $f.code; err = $f.err; globals = $f.globals; name = $f.name; value = $f.value; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
+			var $ptr, L, _entry, _i, _keys, _r, _r$1, _ref, code, err, globals, name, value, $s, $deferred, $r;
+			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _entry = $f._entry; _i = $f._i; _keys = $f._keys; _r = $f._r; _r$1 = $f._r$1; _ref = $f._ref; code = $f.code; err = $f.err; globals = $f.globals; name = $f.name; value = $f.value; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
 			_r = lua.NewState(new sliceType([])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 			L = _r;
 			$deferred.push([$methodVal(L, "Close"), []]);
@@ -43892,15 +43866,11 @@ $packages["github.com/fiatjaf/glua"] = (function() {
 			/* } */ $s = 2; continue; case 3:
 			_r$1 = L.DoString(code); /* */ $s = 5; case 5: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			err = _r$1;
-			/* */ if (!($interfaceIsEqual(err, $ifaceNil))) { $s = 6; continue; }
-			/* */ $s = 7; continue;
-			/* if (!($interfaceIsEqual(err, $ifaceNil))) { */ case 6:
-				_r$2 = err.Error(); /* */ $s = 8; case 8: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-				_arg = new $String(_r$2);
-				$r = console.Error(new sliceType$1([new $String("error during Lua script execution"), _arg])); /* */ $s = 9; case 9: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			/* } */ case 7:
+			if (!($interfaceIsEqual(err, $ifaceNil))) {
+				$panic(err);
+			}
 			$s = -1; return;
-			/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.L = L; $f._arg = _arg; $f._entry = _entry; $f._i = _i; $f._keys = _keys; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._ref = _ref; $f.code = code; $f.err = err; $f.globals = globals; $f.name = name; $f.value = value; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
+			/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.L = L; $f._entry = _entry; $f._i = _i; $f._keys = _keys; $f._r = _r; $f._r$1 = _r$1; $f._ref = _ref; $f.code = code; $f.err = err; $f.globals = globals; $f.name = name; $f.value = value; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
 		});
 		if (!($module === undefined)) {
 			$module.exports.run = $externalize(run, funcType);
@@ -44031,7 +44001,6 @@ $packages["github.com/fiatjaf/glua"] = (function() {
 		/* */ var $f, $c = false, $s = 0, $r; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		$r = js.$init(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$r = lua.$init(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = console.$init(); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		if ($pkg === $mainPkg) {
 			main();
 			$mainFinished = true;

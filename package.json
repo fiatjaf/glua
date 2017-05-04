@@ -1,6 +1,6 @@
 {
   "name": "glua",
-  "version": "0.1.2",
+  "version": "0.2.3",
   "description": "Full-featured Lua VM for nodejs and the browser. Based on github.com/yuin/gopher-lua.",
   "main": "dist/glua.js",
   "repository": {

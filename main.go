@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/gopherjs/gopherjs/js"
 	lua "github.com/yuin/gopher-lua"
-	"honnef.co/go/js/console"
 )
 
 func main() {
@@ -11,7 +10,7 @@ func main() {
 		L := lua.NewState()
 		defer L.Close()
 		if err := L.DoString(code); err != nil {
-			console.Error("error during Lua script execution", err.Error())
+			panic(err)
 		}
 	}
 	withGlobals := func(globals map[string]interface{}, code string) {
@@ -23,7 +22,7 @@ func main() {
 		}
 
 		if err := L.DoString(code); err != nil {
-			console.Error("error during Lua script execution", err.Error())
+			panic(err)
 		}
 	}
 
