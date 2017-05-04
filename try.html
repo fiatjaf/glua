@@ -4,6 +4,24 @@
 
 <center>open your console for all the action.</center>
 <center><a href="https://github.com/fiatjaf/glua">back to GitHub</a></center>
+<br>
+<br>
+<center>a simple example you can run now (copy and paste in the console):</center>
+<pre style="max-width: 400px; margin: auto">
+  <code>
+var state = {count: 18}
+glua.runWithGlobals({
+  increase: function (n) { state.count += n },
+  state: state
+}, `
+
+print('initial value: ', state.count)
+increase(5) -- increasing by 5
+
+`)
+console.log('now the value is:', state.count)
+  </code>
+</pre>
 
 <script src=dist/glua.min.js></script>
 <script>
