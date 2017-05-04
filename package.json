@@ -1,8 +1,12 @@
 {
   "name": "glua",
-  "version": "0.0.1",
+  "version": "0.1.2",
   "description": "Full-featured Lua VM for nodejs and the browser. Based on github.com/yuin/gopher-lua.",
   "main": "dist/glua.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fiatjaf/glua.git"
+  },
   "scripts": {
     "clean": "rm -rf ${GOPATH}/pkg/*_js_*",
     "build": "npm run clean && gopherjs build -o dist/glua.js",

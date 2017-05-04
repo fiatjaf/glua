@@ -52,6 +52,12 @@ func lvalueFromInterface(L *lua.LState, value interface{}) lua.LValue {
 			table.RawSetString(k, lvalueFromInterface(L, iv))
 		}
 		return table
+	case []interface{}:
+		table := L.NewTable()
+		for i, iv := range val {
+			table.RawSetInt(i, lvalueFromInterface(L, iv))
+		}
+		return table
 	case func(...interface{}) *js.Object:
 		fn := val
 		return L.NewFunction(func(L *lua.LState) int {

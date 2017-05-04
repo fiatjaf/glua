@@ -7956,12 +7956,32 @@ $packages["github.com/gopherjs/gopherjs/nosync"] = (function() {
 	return $pkg;
 })();
 $packages["time"] = (function() {
-	var $pkg = {}, $init, errors, js, nosync, runtime, syscall, ParseError, Time, Month, Weekday, Duration, Location, zone, zoneTrans, sliceType, sliceType$1, ptrType, sliceType$2, structType, arrayType, sliceType$3, arrayType$1, arrayType$2, ptrType$1, arrayType$4, ptrType$3, ptrType$6, std0x, longDayNames, shortDayNames, shortMonthNames, longMonthNames, atoiError, errBad, errLeadingInt, months, days, daysBefore, utcLoc, utcLoc$24ptr, localLoc, localLoc$24ptr, localOnce, zoneinfo, badData, zoneDirs, _tuple, _r, init, initLocal, runtimeNano, now, Sleep, indexByte, startsWithLowerCase, nextStdChunk, match, lookup, appendInt, atoi, formatNano, quote, isDigit, getnum, cutspace, skip, Parse, parse, parseTimeZone, parseGMT, parseNanoseconds, leadingInt, absWeekday, absClock, fmtFrac, fmtInt, absDate, daysIn, Now, Unix, isLeap, norm, Date, div, FixedZone;
+	var $pkg = {}, $init, errors, js, nosync, runtime, syscall, runtimeTimer, ParseError, Timer, Time, Month, Weekday, Duration, Location, zone, zoneTrans, sliceType, sliceType$1, ptrType, sliceType$2, structType, arrayType, sliceType$3, arrayType$1, arrayType$2, ptrType$1, arrayType$4, funcType$1, ptrType$2, ptrType$3, ptrType$4, chanType$1, ptrType$6, std0x, longDayNames, shortDayNames, shortMonthNames, longMonthNames, atoiError, errBad, errLeadingInt, months, days, daysBefore, utcLoc, utcLoc$24ptr, localLoc, localLoc$24ptr, localOnce, zoneinfo, badData, zoneDirs, _tuple, _r, init, initLocal, runtimeNano, now, Sleep, startTimer, stopTimer, indexByte, startsWithLowerCase, nextStdChunk, match, lookup, appendInt, atoi, formatNano, quote, isDigit, getnum, cutspace, skip, Parse, parse, parseTimeZone, parseGMT, parseNanoseconds, leadingInt, when, absWeekday, absClock, fmtFrac, fmtInt, absDate, daysIn, Now, Unix, isLeap, norm, Date, div, FixedZone;
 	errors = $packages["errors"];
 	js = $packages["github.com/gopherjs/gopherjs/js"];
 	nosync = $packages["github.com/gopherjs/gopherjs/nosync"];
 	runtime = $packages["runtime"];
 	syscall = $packages["syscall"];
+	runtimeTimer = $pkg.runtimeTimer = $newType(0, $kindStruct, "time.runtimeTimer", true, "time", false, function(i_, when_, period_, f_, arg_, timeout_, active_) {
+		this.$val = this;
+		if (arguments.length === 0) {
+			this.i = 0;
+			this.when = new $Int64(0, 0);
+			this.period = new $Int64(0, 0);
+			this.f = $throwNilPointerError;
+			this.arg = $ifaceNil;
+			this.timeout = null;
+			this.active = false;
+			return;
+		}
+		this.i = i_;
+		this.when = when_;
+		this.period = period_;
+		this.f = f_;
+		this.arg = arg_;
+		this.timeout = timeout_;
+		this.active = active_;
+	});
 	ParseError = $pkg.ParseError = $newType(0, $kindStruct, "time.ParseError", true, "time", true, function(Layout_, Value_, LayoutElem_, ValueElem_, Message_) {
 		this.$val = this;
 		if (arguments.length === 0) {
@@ -7977,6 +7997,16 @@ $packages["time"] = (function() {
 		this.LayoutElem = LayoutElem_;
 		this.ValueElem = ValueElem_;
 		this.Message = Message_;
+	});
+	Timer = $pkg.Timer = $newType(0, $kindStruct, "time.Timer", true, "time", true, function(C_, r_) {
+		this.$val = this;
+		if (arguments.length === 0) {
+			this.C = $chanNil;
+			this.r = new runtimeTimer.ptr(0, new $Int64(0, 0), new $Int64(0, 0), $throwNilPointerError, $ifaceNil, null, false);
+			return;
+		}
+		this.C = C_;
+		this.r = r_;
 	});
 	Time = $pkg.Time = $newType(0, $kindStruct, "time.Time", true, "time", true, function(sec_, nsec_, loc_) {
 		this.$val = this;
@@ -8048,7 +8078,11 @@ $packages["time"] = (function() {
 	arrayType$2 = $arrayType($Uint8, 64);
 	ptrType$1 = $ptrType(Location);
 	arrayType$4 = $arrayType($Uint8, 32);
+	funcType$1 = $funcType([$emptyInterface, $Uintptr], [], false);
+	ptrType$2 = $ptrType(js.Object);
 	ptrType$3 = $ptrType(ParseError);
+	ptrType$4 = $ptrType(Timer);
+	chanType$1 = $chanType(Time, false, true);
 	ptrType$6 = $ptrType(Time);
 	init = function() {
 		var $ptr;
@@ -8097,6 +8131,33 @@ $packages["time"] = (function() {
 		/* */ } return; } if ($f === undefined) { $f = { $blk: Sleep }; } $f.$ptr = $ptr; $f._r$1 = _r$1; $f.c = c; $f.d = d; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	$pkg.Sleep = Sleep;
+	startTimer = function(t) {
+		var $ptr, diff, t, x, x$1;
+		t.active = true;
+		diff = $div64(((x = t.when, x$1 = runtimeNano(), new $Int64(x.$high - x$1.$high, x.$low - x$1.$low))), new $Int64(0, 1000000), false);
+		if ((diff.$high > 0 || (diff.$high === 0 && diff.$low > 2147483647))) {
+			return;
+		}
+		if ((diff.$high < 0 || (diff.$high === 0 && diff.$low < 0))) {
+			diff = new $Int64(0, 0);
+		}
+		t.timeout = $setTimeout((function() {
+			var $ptr, x$2, x$3, x$4;
+			t.active = false;
+			if (!((x$2 = t.period, (x$2.$high === 0 && x$2.$low === 0)))) {
+				t.when = (x$3 = t.when, x$4 = t.period, new $Int64(x$3.$high + x$4.$high, x$3.$low + x$4.$low));
+				startTimer(t);
+			}
+			$go(t.f, [t.arg, 0]);
+		}), $externalize(new $Int64(diff.$high + 0, diff.$low + 1), $Int64));
+	};
+	stopTimer = function(t) {
+		var $ptr, t, wasActive;
+		$global.clearTimeout(t.timeout);
+		wasActive = t.active;
+		t.active = false;
+		return wasActive;
+	};
 	indexByte = function(s, c) {
 		var $ptr, c, s;
 		return $parseInt(s.indexOf($global.String.fromCharCode(c))) >> 0;
@@ -9370,6 +9431,39 @@ $packages["time"] = (function() {
 		err = _tmp$8;
 		return [x, rem, err];
 	};
+	when = function(d) {
+		var $ptr, d, t, x, x$1;
+		if ((d.$high < 0 || (d.$high === 0 && d.$low <= 0))) {
+			return runtimeNano();
+		}
+		t = (x = runtimeNano(), x$1 = new $Int64(d.$high, d.$low), new $Int64(x.$high + x$1.$high, x.$low + x$1.$low));
+		if ((t.$high < 0 || (t.$high === 0 && t.$low < 0))) {
+			t = new $Int64(2147483647, 4294967295);
+		}
+		return t;
+	};
+	Timer.ptr.prototype.Stop = function() {
+		var $ptr, t;
+		t = this;
+		if (t.r.f === $throwNilPointerError) {
+			$panic(new $String("time: Stop called on uninitialized Timer"));
+		}
+		return stopTimer(t.r);
+	};
+	Timer.prototype.Stop = function() { return this.$val.Stop(); };
+	Timer.ptr.prototype.Reset = function(d) {
+		var $ptr, active, d, t, w;
+		t = this;
+		if (t.r.f === $throwNilPointerError) {
+			$panic(new $String("time: Reset called on uninitialized Timer"));
+		}
+		w = when(d);
+		active = stopTimer(t.r);
+		t.r.when = w;
+		startTimer(t.r);
+		return active;
+	};
+	Timer.prototype.Reset = function(d) { return this.$val.Reset(d); };
 	Time.ptr.prototype.setLoc = function(loc) {
 		var $ptr, loc, t;
 		t = this;
@@ -10548,13 +10642,16 @@ $packages["time"] = (function() {
 	};
 	Location.prototype.lookupName = function(name, unix) { return this.$val.lookupName(name, unix); };
 	ptrType$3.methods = [{prop: "Error", name: "Error", pkg: "", typ: $funcType([], [$String], false)}];
+	ptrType$4.methods = [{prop: "Stop", name: "Stop", pkg: "", typ: $funcType([], [$Bool], false)}, {prop: "Reset", name: "Reset", pkg: "", typ: $funcType([Duration], [$Bool], false)}];
 	Time.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Format", name: "Format", pkg: "", typ: $funcType([$String], [$String], false)}, {prop: "AppendFormat", name: "AppendFormat", pkg: "", typ: $funcType([sliceType$3, $String], [sliceType$3], false)}, {prop: "After", name: "After", pkg: "", typ: $funcType([Time], [$Bool], false)}, {prop: "Before", name: "Before", pkg: "", typ: $funcType([Time], [$Bool], false)}, {prop: "Equal", name: "Equal", pkg: "", typ: $funcType([Time], [$Bool], false)}, {prop: "IsZero", name: "IsZero", pkg: "", typ: $funcType([], [$Bool], false)}, {prop: "abs", name: "abs", pkg: "time", typ: $funcType([], [$Uint64], false)}, {prop: "locabs", name: "locabs", pkg: "time", typ: $funcType([], [$String, $Int, $Uint64], false)}, {prop: "Date", name: "Date", pkg: "", typ: $funcType([], [$Int, Month, $Int], false)}, {prop: "Year", name: "Year", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Month", name: "Month", pkg: "", typ: $funcType([], [Month], false)}, {prop: "Day", name: "Day", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Weekday", name: "Weekday", pkg: "", typ: $funcType([], [Weekday], false)}, {prop: "ISOWeek", name: "ISOWeek", pkg: "", typ: $funcType([], [$Int, $Int], false)}, {prop: "Clock", name: "Clock", pkg: "", typ: $funcType([], [$Int, $Int, $Int], false)}, {prop: "Hour", name: "Hour", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Minute", name: "Minute", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Second", name: "Second", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Nanosecond", name: "Nanosecond", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "YearDay", name: "YearDay", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Add", name: "Add", pkg: "", typ: $funcType([Duration], [Time], false)}, {prop: "Sub", name: "Sub", pkg: "", typ: $funcType([Time], [Duration], false)}, {prop: "AddDate", name: "AddDate", pkg: "", typ: $funcType([$Int, $Int, $Int], [Time], false)}, {prop: "date", name: "date", pkg: "time", typ: $funcType([$Bool], [$Int, Month, $Int, $Int], false)}, {prop: "UTC", name: "UTC", pkg: "", typ: $funcType([], [Time], false)}, {prop: "Local", name: "Local", pkg: "", typ: $funcType([], [Time], false)}, {prop: "In", name: "In", pkg: "", typ: $funcType([ptrType$1], [Time], false)}, {prop: "Location", name: "Location", pkg: "", typ: $funcType([], [ptrType$1], false)}, {prop: "Zone", name: "Zone", pkg: "", typ: $funcType([], [$String, $Int], false)}, {prop: "Unix", name: "Unix", pkg: "", typ: $funcType([], [$Int64], false)}, {prop: "UnixNano", name: "UnixNano", pkg: "", typ: $funcType([], [$Int64], false)}, {prop: "MarshalBinary", name: "MarshalBinary", pkg: "", typ: $funcType([], [sliceType$3, $error], false)}, {prop: "GobEncode", name: "GobEncode", pkg: "", typ: $funcType([], [sliceType$3, $error], false)}, {prop: "MarshalJSON", name: "MarshalJSON", pkg: "", typ: $funcType([], [sliceType$3, $error], false)}, {prop: "MarshalText", name: "MarshalText", pkg: "", typ: $funcType([], [sliceType$3, $error], false)}, {prop: "Truncate", name: "Truncate", pkg: "", typ: $funcType([Duration], [Time], false)}, {prop: "Round", name: "Round", pkg: "", typ: $funcType([Duration], [Time], false)}];
 	ptrType$6.methods = [{prop: "setLoc", name: "setLoc", pkg: "time", typ: $funcType([ptrType$1], [], false)}, {prop: "UnmarshalBinary", name: "UnmarshalBinary", pkg: "", typ: $funcType([sliceType$3], [$error], false)}, {prop: "GobDecode", name: "GobDecode", pkg: "", typ: $funcType([sliceType$3], [$error], false)}, {prop: "UnmarshalJSON", name: "UnmarshalJSON", pkg: "", typ: $funcType([sliceType$3], [$error], false)}, {prop: "UnmarshalText", name: "UnmarshalText", pkg: "", typ: $funcType([sliceType$3], [$error], false)}];
 	Month.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}];
 	Weekday.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}];
 	Duration.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Nanoseconds", name: "Nanoseconds", pkg: "", typ: $funcType([], [$Int64], false)}, {prop: "Seconds", name: "Seconds", pkg: "", typ: $funcType([], [$Float64], false)}, {prop: "Minutes", name: "Minutes", pkg: "", typ: $funcType([], [$Float64], false)}, {prop: "Hours", name: "Hours", pkg: "", typ: $funcType([], [$Float64], false)}];
 	ptrType$1.methods = [{prop: "get", name: "get", pkg: "time", typ: $funcType([], [ptrType$1], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "lookup", name: "lookup", pkg: "time", typ: $funcType([$Int64], [$String, $Int, $Bool, $Int64, $Int64], false)}, {prop: "lookupFirstZone", name: "lookupFirstZone", pkg: "time", typ: $funcType([], [$Int], false)}, {prop: "firstZoneUsed", name: "firstZoneUsed", pkg: "time", typ: $funcType([], [$Bool], false)}, {prop: "lookupName", name: "lookupName", pkg: "time", typ: $funcType([$String, $Int64], [$Int, $Bool, $Bool], false)}];
+	runtimeTimer.init("time", [{prop: "i", name: "i", exported: false, typ: $Int32, tag: ""}, {prop: "when", name: "when", exported: false, typ: $Int64, tag: ""}, {prop: "period", name: "period", exported: false, typ: $Int64, tag: ""}, {prop: "f", name: "f", exported: false, typ: funcType$1, tag: ""}, {prop: "arg", name: "arg", exported: false, typ: $emptyInterface, tag: ""}, {prop: "timeout", name: "timeout", exported: false, typ: ptrType$2, tag: ""}, {prop: "active", name: "active", exported: false, typ: $Bool, tag: ""}]);
 	ParseError.init("", [{prop: "Layout", name: "Layout", exported: true, typ: $String, tag: ""}, {prop: "Value", name: "Value", exported: true, typ: $String, tag: ""}, {prop: "LayoutElem", name: "LayoutElem", exported: true, typ: $String, tag: ""}, {prop: "ValueElem", name: "ValueElem", exported: true, typ: $String, tag: ""}, {prop: "Message", name: "Message", exported: true, typ: $String, tag: ""}]);
+	Timer.init("time", [{prop: "C", name: "C", exported: true, typ: chanType$1, tag: ""}, {prop: "r", name: "r", exported: false, typ: runtimeTimer, tag: ""}]);
 	Time.init("time", [{prop: "sec", name: "sec", exported: false, typ: $Int64, tag: ""}, {prop: "nsec", name: "nsec", exported: false, typ: $Int32, tag: ""}, {prop: "loc", name: "loc", exported: false, typ: ptrType$1, tag: ""}]);
 	Location.init("time", [{prop: "name", name: "name", exported: false, typ: $String, tag: ""}, {prop: "zone", name: "zone", exported: false, typ: sliceType, tag: ""}, {prop: "tx", name: "tx", exported: false, typ: sliceType$1, tag: ""}, {prop: "cacheStart", name: "cacheStart", exported: false, typ: $Int64, tag: ""}, {prop: "cacheEnd", name: "cacheEnd", exported: false, typ: $Int64, tag: ""}, {prop: "cacheZone", name: "cacheZone", exported: false, typ: ptrType, tag: ""}]);
 	zone.init("time", [{prop: "name", name: "name", exported: false, typ: $String, tag: ""}, {prop: "offset", name: "offset", exported: false, typ: $Int, tag: ""}, {prop: "isDST", name: "isDST", exported: false, typ: $Bool, tag: ""}]);
@@ -14991,7 +15088,7 @@ $packages["strconv"] = (function() {
 	return $pkg;
 })();
 $packages["reflect"] = (function() {
-	var $pkg = {}, $init, errors, js, math, runtime, strconv, sync, uncommonType, funcType, name, nameData, mapIter, Type, Kind, tflag, rtype, typeAlg, method, ChanDir, arrayType, chanType, imethod, interfaceType, mapType, ptrType, sliceType, structField, structType, Method, nameOff, typeOff, textOff, StructField, StructTag, fieldScan, Value, flag, ValueError, SliceHeader, runtimeSelect, SelectDir, SelectCase, sliceType$1, ptrType$1, sliceType$2, sliceType$3, mapType$1, structType$1, sliceType$5, ptrType$3, funcType$1, sliceType$6, ptrType$4, ptrType$5, sliceType$7, sliceType$8, ptrType$6, ptrType$7, structType$8, sliceType$9, sliceType$10, sliceType$11, sliceType$12, ptrType$8, ptrType$9, sliceType$14, sliceType$15, ptrType$10, sliceType$16, ptrType$16, sliceType$17, sliceType$18, ptrType$17, funcType$3, funcType$4, funcType$5, arrayType$12, ptrType$18, initialized, uncommonTypeMap, nameMap, nameOffList, typeOffList, callHelper, jsObjectPtr, selectHelper, kindNames, methodCache, uint8Type, init, jsType, reflectType, setKindType, newName, newNameOff, newTypeOff, internalStr, isWrapped, copyStruct, makeValue, MakeSlice, TypeOf, ValueOf, FuncOf, SliceOf, Zero, unsafe_New, makeInt, typedmemmove, keyFor, mapaccess, mapassign, mapdelete, mapiterinit, mapiterkey, mapiternext, maplen, cvtDirect, methodReceiver, valueInterface, ifaceE2I, methodName, makeMethodValue, wrapJsObject, unwrapJsObject, getJsTag, chanrecv, chansend, rselect, PtrTo, implements$1, directlyAssignable, haveIdenticalType, haveIdenticalUnderlyingType, toType, ifaceIndir, overflowFloat32, Select, New, convertOp, makeFloat, makeComplex, makeString, makeBytes, makeRunes, cvtInt, cvtUint, cvtFloatInt, cvtFloatUint, cvtIntFloat, cvtUintFloat, cvtFloat, cvtComplex, cvtIntString, cvtUintString, cvtBytesString, cvtStringBytes, cvtRunesString, cvtStringRunes, cvtT2I, cvtI2I;
+	var $pkg = {}, $init, errors, js, math, runtime, strconv, sync, uncommonType, funcType, name, nameData, mapIter, Type, Kind, tflag, rtype, typeAlg, method, ChanDir, arrayType, chanType, imethod, interfaceType, mapType, ptrType, sliceType, structField, structType, Method, nameOff, typeOff, textOff, StructField, StructTag, fieldScan, Value, flag, ValueError, StringHeader, SliceHeader, runtimeSelect, SelectDir, SelectCase, sliceType$1, ptrType$1, sliceType$2, sliceType$3, mapType$1, structType$1, sliceType$5, ptrType$3, funcType$1, sliceType$6, ptrType$4, ptrType$5, sliceType$7, sliceType$8, ptrType$6, ptrType$7, structType$8, sliceType$9, sliceType$10, sliceType$11, sliceType$12, ptrType$8, ptrType$9, sliceType$14, sliceType$15, ptrType$10, sliceType$16, ptrType$16, sliceType$17, sliceType$18, ptrType$17, funcType$3, funcType$4, funcType$5, arrayType$12, ptrType$18, initialized, uncommonTypeMap, nameMap, nameOffList, typeOffList, callHelper, jsObjectPtr, selectHelper, kindNames, methodCache, uint8Type, init, jsType, reflectType, setKindType, newName, newNameOff, newTypeOff, internalStr, isWrapped, copyStruct, makeValue, MakeSlice, TypeOf, ValueOf, FuncOf, SliceOf, Zero, unsafe_New, makeInt, typedmemmove, keyFor, mapaccess, mapassign, mapdelete, mapiterinit, mapiterkey, mapiternext, maplen, cvtDirect, methodReceiver, valueInterface, ifaceE2I, methodName, makeMethodValue, wrapJsObject, unwrapJsObject, getJsTag, chanrecv, chansend, rselect, PtrTo, implements$1, directlyAssignable, haveIdenticalType, haveIdenticalUnderlyingType, toType, ifaceIndir, overflowFloat32, Select, New, convertOp, makeFloat, makeComplex, makeString, makeBytes, makeRunes, cvtInt, cvtUint, cvtFloatInt, cvtFloatUint, cvtIntFloat, cvtUintFloat, cvtFloat, cvtComplex, cvtIntString, cvtUintString, cvtBytesString, cvtStringBytes, cvtRunesString, cvtStringRunes, cvtT2I, cvtI2I;
 	errors = $packages["errors"];
 	js = $packages["github.com/gopherjs/gopherjs/js"];
 	math = $packages["math"];
@@ -15318,6 +15415,16 @@ $packages["reflect"] = (function() {
 		}
 		this.Method = Method_;
 		this.Kind = Kind_;
+	});
+	StringHeader = $pkg.StringHeader = $newType(0, $kindStruct, "reflect.StringHeader", true, "reflect", true, function(Data_, Len_) {
+		this.$val = this;
+		if (arguments.length === 0) {
+			this.Data = 0;
+			this.Len = 0;
+			return;
+		}
+		this.Data = Data_;
+		this.Len = Len_;
 	});
 	SliceHeader = $pkg.SliceHeader = $newType(0, $kindStruct, "reflect.SliceHeader", true, "reflect", true, function(Data_, Len_, Cap_) {
 		this.$val = this;
@@ -19334,6 +19441,7 @@ $packages["reflect"] = (function() {
 	fieldScan.init("reflect", [{prop: "typ", name: "typ", exported: false, typ: ptrType$10, tag: ""}, {prop: "index", name: "index", exported: false, typ: sliceType$14, tag: ""}]);
 	Value.init("reflect", [{prop: "typ", name: "typ", exported: false, typ: ptrType$1, tag: ""}, {prop: "ptr", name: "ptr", exported: false, typ: $UnsafePointer, tag: ""}, {prop: "flag", name: "", exported: false, typ: flag, tag: ""}]);
 	ValueError.init("", [{prop: "Method", name: "Method", exported: true, typ: $String, tag: ""}, {prop: "Kind", name: "Kind", exported: true, typ: Kind, tag: ""}]);
+	StringHeader.init("", [{prop: "Data", name: "Data", exported: true, typ: $Uintptr, tag: ""}, {prop: "Len", name: "Len", exported: true, typ: $Int, tag: ""}]);
 	SliceHeader.init("", [{prop: "Data", name: "Data", exported: true, typ: $Uintptr, tag: ""}, {prop: "Len", name: "Len", exported: true, typ: $Int, tag: ""}, {prop: "Cap", name: "Cap", exported: true, typ: $Int, tag: ""}]);
 	runtimeSelect.init("reflect", [{prop: "dir", name: "dir", exported: false, typ: SelectDir, tag: ""}, {prop: "typ", name: "typ", exported: false, typ: ptrType$1, tag: ""}, {prop: "ch", name: "ch", exported: false, typ: $UnsafePointer, tag: ""}, {prop: "val", name: "val", exported: false, typ: $UnsafePointer, tag: ""}]);
 	SelectCase.init("", [{prop: "Dir", name: "Dir", exported: true, typ: SelectDir, tag: ""}, {prop: "Chan", name: "Chan", exported: true, typ: Value, tag: ""}, {prop: "Send", name: "Send", exported: true, typ: Value, tag: ""}]);
@@ -26527,7 +26635,12 @@ $packages["github.com/yuin/gopher-lua/pm"] = (function() {
 			/* if (_1 === (37)) { */ case 2:
 				$s = -1; return new singleClass.ptr(sc.Next());
 			/* } else if (_1 === (46)) { */ case 3:
-				$s = -1; return new dotClass.ptr();
+				if (allowset) {
+					$s = -1; return new dotClass.ptr();
+				} else {
+					$s = -1; return new charClass.ptr(ch);
+				}
+				$s = 7; continue;
 			/* } else if (_1 === (91)) { */ case 4:
 				/* */ if (!allowset) { $s = 8; continue; }
 				/* */ $s = 9; continue;
@@ -26549,8 +26662,8 @@ $packages["github.com/yuin/gopher-lua/pm"] = (function() {
 		/* */ } return; } if ($f === undefined) { $f = { $blk: parseClass }; } $f.$ptr = $ptr; $f._1 = _1; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f.allowset = allowset; $f.ch = ch; $f.sc = sc; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	parseClassSet = function(sc) {
-		var $ptr, _1, _r, _r$1, _r$2, _r$3, _r$4, begin, ch, end, isrange, sc, set, x, x$1, x$2, x$3, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; begin = $f.begin; ch = $f.ch; end = $f.end; isrange = $f.isrange; sc = $f.sc; set = $f.set; x = $f.x; x$1 = $f.x$1; x$2 = $f.x$2; x$3 = $f.x$3; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		var $ptr, _1, _r, _r$1, _r$2, _r$3, begin, ch, end, isrange, sc, set, x, x$1, x$2, x$3, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; begin = $f.begin; ch = $f.ch; end = $f.end; isrange = $f.isrange; sc = $f.sc; set = $f.set; x = $f.x; x$1 = $f.x$1; x$2 = $f.x$2; x$3 = $f.x$3; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		set = new setClass.ptr(false, new sliceType$3([]));
 		if (sc.Peek() === 94) {
 			set.IsNot = true;
@@ -26560,33 +26673,33 @@ $packages["github.com/yuin/gopher-lua/pm"] = (function() {
 		/* while (true) { */ case 1:
 			ch = sc.Peek();
 				_1 = ch;
-				/* */ if (_1 === (45)) { $s = 4; continue; }
-				/* */ if (_1 === (91)) { $s = 5; continue; }
-				/* */ if (_1 === (93)) { $s = 6; continue; }
-				/* */ if (_1 === (-1)) { $s = 7; continue; }
+				/* */ if (_1 === (91)) { $s = 4; continue; }
+				/* */ if (_1 === (93)) { $s = 5; continue; }
+				/* */ if (_1 === (-1)) { $s = 6; continue; }
+				/* */ if (_1 === (45)) { $s = 7; continue; }
 				/* */ $s = 8; continue;
-				/* if (_1 === (45)) { */ case 4:
-					/* */ if (isrange) { $s = 10; continue; }
-					/* */ $s = 11; continue;
-					/* if (isrange) { */ case 10:
-						_r = newError(sc.CurrentPos(), "invalid range", new sliceType([])); /* */ $s = 12; case 12: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
-						$panic(_r);
-					/* } */ case 11:
-					sc.Next();
-					isrange = true;
-					/* continue; */ $s = 1; continue;
+				/* if (_1 === (91)) { */ case 4:
+					_r = newError(sc.CurrentPos(), "'[' can not be nested", new sliceType([])); /* */ $s = 10; case 10: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+					$panic(_r);
 					$s = 9; continue;
-				/* } else if (_1 === (91)) { */ case 5:
-					_r$1 = newError(sc.CurrentPos(), "'[' can not be nested", new sliceType([])); /* */ $s = 13; case 13: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+				/* } else if (_1 === (93)) { */ case 5:
+					sc.Next();
+					/* goto exit */ $s = 11; continue;
+					$s = 9; continue;
+				/* } else if (_1 === (-1)) { */ case 6:
+					_r$1 = newError(sc.CurrentPos(), "unexpected EOS", new sliceType([])); /* */ $s = 12; case 12: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 					$panic(_r$1);
 					$s = 9; continue;
-				/* } else if (_1 === (93)) { */ case 6:
-					sc.Next();
-					/* goto exit */ $s = 14; continue;
-					$s = 9; continue;
-				/* } else if (_1 === (-1)) { */ case 7:
-					_r$2 = newError(sc.CurrentPos(), "unexpected EOS", new sliceType([])); /* */ $s = 15; case 15: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-					$panic(_r$2);
+				/* } else if (_1 === (45)) { */ case 7:
+					/* */ if (set.Classes.$length > 0) { $s = 13; continue; }
+					/* */ $s = 14; continue;
+					/* if (set.Classes.$length > 0) { */ case 13:
+						sc.Next();
+						isrange = true;
+						/* continue; */ $s = 1; continue;
+					/* } */ case 14:
+					_r$2 = parseClass(sc, false); /* */ $s = 15; case 15: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+					set.Classes = $append(set.Classes, _r$2);
 					$s = 9; continue;
 				/* } else { */ case 8:
 					_r$3 = parseClass(sc, false); /* */ $s = 16; case 16: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
@@ -26601,19 +26714,16 @@ $packages["github.com/yuin/gopher-lua/pm"] = (function() {
 				isrange = false;
 			}
 		/* } */ $s = 1; continue; case 2:
-		/* exit: */ case 14:
-		/* */ if (isrange) { $s = 17; continue; }
-		/* */ $s = 18; continue;
-		/* if (isrange) { */ case 17:
-			_r$4 = newError(sc.CurrentPos(), "unfinished range", new sliceType([])); /* */ $s = 19; case 19: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
-			$panic(_r$4);
-		/* } */ case 18:
+		/* exit: */ case 11:
+		if (isrange) {
+			set.Classes = $append(set.Classes, new charClass.ptr(45));
+		}
 		$s = -1; return set;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: parseClassSet }; } $f.$ptr = $ptr; $f._1 = _1; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f.begin = begin; $f.ch = ch; $f.end = end; $f.isrange = isrange; $f.sc = sc; $f.set = set; $f.x = x; $f.x$1 = x$1; $f.x$2 = x$2; $f.x$3 = x$3; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: parseClassSet }; } $f.$ptr = $ptr; $f._1 = _1; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f.begin = begin; $f.ch = ch; $f.end = end; $f.isrange = isrange; $f.sc = sc; $f.set = set; $f.x = x; $f.x$1 = x$1; $f.x$2 = x$2; $f.x$3 = x$3; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	parsePattern = function(sc, toplevel) {
-		var $ptr, _1, _2, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _tuple, ch, ok, pat, ret, sc, spat, toplevel, x, x$1, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _2 = $f._2; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _tuple = $f._tuple; ch = $f.ch; ok = $f.ok; pat = $f.pat; ret = $f.ret; sc = $f.sc; spat = $f.spat; toplevel = $f.toplevel; x = $f.x; x$1 = $f.x$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		var $ptr, _1, _2, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _tuple, ch, ok, pat, ret, sc, spat, toplevel, x, x$1, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _2 = $f._2; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _tuple = $f._tuple; ch = $f.ch; ok = $f.ok; pat = $f.pat; ret = $f.ret; sc = $f.sc; spat = $f.spat; toplevel = $f.toplevel; x = $f.x; x$1 = $f.x$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		pat = new seqPattern.ptr(false, false, sliceType$4.nil);
 		if (toplevel) {
 			if (sc.Peek() === 94) {
@@ -26698,23 +26808,17 @@ $packages["github.com/yuin/gopher-lua/pm"] = (function() {
 					$s = 13; continue;
 				/* } else if ((_1 === (42)) || (_1 === (43)) || (_1 === (45)) || (_1 === (63))) { */ case 9:
 					sc.Next();
-					/* */ if (pat.Patterns.$length === 0) { $s = 34; continue; }
-					/* */ $s = 35; continue;
-					/* if (pat.Patterns.$length === 0) { */ case 34:
-						_r$7 = newError(sc.CurrentPos(), "no charcter class before '%c'", new sliceType([new $Int(ch)])); /* */ $s = 36; case 36: if($c) { $c = false; _r$7 = _r$7.$blk(); } if (_r$7 && _r$7.$blk !== undefined) { break s; }
-						$panic(_r$7);
-					/* } */ case 35:
-					_tuple = $assertType((x = pat.Patterns, x$1 = pat.Patterns.$length - 1 >> 0, ((x$1 < 0 || x$1 >= x.$length) ? ($throwRuntimeError("index out of range"), undefined) : x.$array[x.$offset + x$1])), ptrType$1, true);
-					spat = _tuple[0];
-					ok = _tuple[1];
-					/* */ if (!ok) { $s = 37; continue; }
-					/* */ $s = 38; continue;
-					/* if (!ok) { */ case 37:
-						_r$8 = newError(sc.CurrentPos(), "invalid charcter class before '%c'", new sliceType([new $Int(ch)])); /* */ $s = 39; case 39: if($c) { $c = false; _r$8 = _r$8.$blk(); } if (_r$8 && _r$8.$blk !== undefined) { break s; }
-						$panic(_r$8);
-					/* } */ case 38:
-					pat.Patterns = $subslice(pat.Patterns, 0, (pat.Patterns.$length - 1 >> 0));
-					pat.Patterns = $append(pat.Patterns, new repeatPattern.ptr(ch, spat.Class));
+					if (pat.Patterns.$length > 0) {
+						_tuple = $assertType((x = pat.Patterns, x$1 = pat.Patterns.$length - 1 >> 0, ((x$1 < 0 || x$1 >= x.$length) ? ($throwRuntimeError("index out of range"), undefined) : x.$array[x.$offset + x$1])), ptrType$1, true);
+						spat = _tuple[0];
+						ok = _tuple[1];
+						if (ok) {
+							pat.Patterns = $subslice(pat.Patterns, 0, (pat.Patterns.$length - 1 >> 0));
+							pat.Patterns = $append(pat.Patterns, new repeatPattern.ptr(ch, spat.Class));
+							/* continue; */ $s = 1; continue;
+						}
+					}
+					pat.Patterns = $append(pat.Patterns, new singlePattern.ptr(new charClass.ptr(ch)));
 					$s = 13; continue;
 				/* } else if (_1 === (36)) { */ case 10:
 					if (toplevel && ((sc.NextPos() === (sc.Length() - 1 >> 0)) || (sc.NextPos() === -1))) {
@@ -26726,7 +26830,7 @@ $packages["github.com/yuin/gopher-lua/pm"] = (function() {
 					$s = 13; continue;
 				/* } else if (_1 === (-1)) { */ case 11:
 					sc.Next();
-					/* goto exit */ $s = 40; continue;
+					/* goto exit */ $s = 34; continue;
 					$s = 13; continue;
 				/* } else { */ case 12:
 					sc.Next();
@@ -26734,10 +26838,10 @@ $packages["github.com/yuin/gopher-lua/pm"] = (function() {
 				/* } */ case 13:
 			case 3:
 		/* } */ $s = 1; continue; case 2:
-		/* exit: */ case 40:
+		/* exit: */ case 34:
 		$s = -1; return pat;
 		$s = -1; return ptrType$2.nil;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: parsePattern }; } $f.$ptr = $ptr; $f._1 = _1; $f._2 = _2; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._tuple = _tuple; $f.ch = ch; $f.ok = ok; $f.pat = pat; $f.ret = ret; $f.sc = sc; $f.spat = spat; $f.toplevel = toplevel; $f.x = x; $f.x$1 = x$1; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: parsePattern }; } $f.$ptr = $ptr; $f._1 = _1; $f._2 = _2; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._tuple = _tuple; $f.ch = ch; $f.ok = ok; $f.pat = pat; $f.ret = ret; $f.sc = sc; $f.spat = spat; $f.toplevel = toplevel; $f.x = x; $f.x$1 = x$1; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	compilePattern = function(p, ps) {
 		var $ptr, _1, _i, _ref, _ref$1, _tmp, _tmp$1, c0, c1, cp, idx, p, pat, pat$1, pat$2, pat$3, pat$4, pat$5, pat$6, ps, ptr, toplevel;
@@ -27004,6 +27108,368 @@ $packages["github.com/yuin/gopher-lua/pm"] = (function() {
 		$pkg.$init = function() {};
 		/* */ var $f, $c = false, $s = 0, $r; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		$r = fmt.$init(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* */ } return; } if ($f === undefined) { $f = { $blk: $init }; } $f.$s = $s; $f.$r = $r; return $f;
+	};
+	$pkg.$init = $init;
+	return $pkg;
+})();
+$packages["golang.org/x/net/context"] = (function() {
+	var $pkg = {}, $init, errors, fmt, sync, time, Context, emptyCtx, CancelFunc, canceler, cancelCtx, timerCtx, valueCtx, ptrType, ptrType$1, structType, ptrType$2, ptrType$3, ptrType$4, sliceType, ptrType$5, chanType, chanType$1, mapType, background, todo, WithCancel, newCancelCtx, propagateCancel, parentCancelCtx, removeChild;
+	errors = $packages["errors"];
+	fmt = $packages["fmt"];
+	sync = $packages["sync"];
+	time = $packages["time"];
+	Context = $pkg.Context = $newType(8, $kindInterface, "context.Context", true, "golang.org/x/net/context", true, null);
+	emptyCtx = $pkg.emptyCtx = $newType(4, $kindInt, "context.emptyCtx", true, "golang.org/x/net/context", false, null);
+	CancelFunc = $pkg.CancelFunc = $newType(4, $kindFunc, "context.CancelFunc", true, "golang.org/x/net/context", true, null);
+	canceler = $pkg.canceler = $newType(8, $kindInterface, "context.canceler", true, "golang.org/x/net/context", false, null);
+	cancelCtx = $pkg.cancelCtx = $newType(0, $kindStruct, "context.cancelCtx", true, "golang.org/x/net/context", false, function(Context_, done_, mu_, children_, err_) {
+		this.$val = this;
+		if (arguments.length === 0) {
+			this.Context = $ifaceNil;
+			this.done = $chanNil;
+			this.mu = new sync.Mutex.ptr(0, 0);
+			this.children = false;
+			this.err = $ifaceNil;
+			return;
+		}
+		this.Context = Context_;
+		this.done = done_;
+		this.mu = mu_;
+		this.children = children_;
+		this.err = err_;
+	});
+	timerCtx = $pkg.timerCtx = $newType(0, $kindStruct, "context.timerCtx", true, "golang.org/x/net/context", false, function(cancelCtx_, timer_, deadline_) {
+		this.$val = this;
+		if (arguments.length === 0) {
+			this.cancelCtx = new cancelCtx.ptr($ifaceNil, $chanNil, new sync.Mutex.ptr(0, 0), false, $ifaceNil);
+			this.timer = ptrType$5.nil;
+			this.deadline = new time.Time.ptr(new $Int64(0, 0), 0, ptrType$1.nil);
+			return;
+		}
+		this.cancelCtx = cancelCtx_;
+		this.timer = timer_;
+		this.deadline = deadline_;
+	});
+	valueCtx = $pkg.valueCtx = $newType(0, $kindStruct, "context.valueCtx", true, "golang.org/x/net/context", false, function(Context_, key_, val_) {
+		this.$val = this;
+		if (arguments.length === 0) {
+			this.Context = $ifaceNil;
+			this.key = $ifaceNil;
+			this.val = $ifaceNil;
+			return;
+		}
+		this.Context = Context_;
+		this.key = key_;
+		this.val = val_;
+	});
+	ptrType = $ptrType(emptyCtx);
+	ptrType$1 = $ptrType(time.Location);
+	structType = $structType("", []);
+	ptrType$2 = $ptrType(cancelCtx);
+	ptrType$3 = $ptrType(timerCtx);
+	ptrType$4 = $ptrType(valueCtx);
+	sliceType = $sliceType($emptyInterface);
+	ptrType$5 = $ptrType(time.Timer);
+	chanType = $chanType(structType, false, true);
+	chanType$1 = $chanType(structType, false, false);
+	mapType = $mapType(canceler, $Bool);
+	$ptrType(emptyCtx).prototype.Deadline = function() {
+		var $ptr, deadline, ok;
+		deadline = new time.Time.ptr(new $Int64(0, 0), 0, ptrType$1.nil);
+		ok = false;
+		return [deadline, ok];
+	};
+	$ptrType(emptyCtx).prototype.Done = function() {
+		var $ptr;
+		return $chanNil;
+	};
+	$ptrType(emptyCtx).prototype.Err = function() {
+		var $ptr;
+		return $ifaceNil;
+	};
+	$ptrType(emptyCtx).prototype.Value = function(key) {
+		var $ptr, key;
+		return $ifaceNil;
+	};
+	$ptrType(emptyCtx).prototype.String = function() {
+		var $ptr, _1, e;
+		e = this;
+		_1 = e;
+		if (_1 === (background)) {
+			return "context.Background";
+		} else if (_1 === (todo)) {
+			return "context.TODO";
+		}
+		return "unknown empty Context";
+	};
+	WithCancel = function(parent) {
+		var $ptr, _tmp, _tmp$1, c, cancel, ctx, parent, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _tmp = $f._tmp; _tmp$1 = $f._tmp$1; c = $f.c; cancel = $f.cancel; ctx = $f.ctx; parent = $f.parent; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		c = [c];
+		ctx = $ifaceNil;
+		cancel = $throwNilPointerError;
+		c[0] = $clone(newCancelCtx(parent), cancelCtx);
+		$r = propagateCancel(parent, c[0]); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		_tmp = c[0];
+		_tmp$1 = (function(c) { return function $b() {
+			var $ptr, $s, $r;
+			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+			$r = c[0].cancel(true, $pkg.Canceled); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$s = -1; return;
+			/* */ } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.$s = $s; $f.$r = $r; return $f;
+		}; })(c);
+		ctx = _tmp;
+		cancel = _tmp$1;
+		$s = -1; return [ctx, cancel];
+		/* */ } return; } if ($f === undefined) { $f = { $blk: WithCancel }; } $f.$ptr = $ptr; $f._tmp = _tmp; $f._tmp$1 = _tmp$1; $f.c = c; $f.cancel = cancel; $f.ctx = ctx; $f.parent = parent; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	$pkg.WithCancel = WithCancel;
+	newCancelCtx = function(parent) {
+		var $ptr, parent;
+		return new cancelCtx.ptr(parent, new $Chan(structType, 0), new sync.Mutex.ptr(0, 0), false, $ifaceNil);
+	};
+	propagateCancel = function(parent, child) {
+		var $ptr, _key, _r, _tuple, child, ok, p, parent, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _key = $f._key; _r = $f._r; _tuple = $f._tuple; child = $f.child; ok = $f.ok; p = $f.p; parent = $f.parent; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		child = [child];
+		parent = [parent];
+		_r = parent[0].Done(); /* */ $s = 3; case 3: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		/* */ if (_r === $chanNil) { $s = 1; continue; }
+		/* */ $s = 2; continue;
+		/* if (_r === $chanNil) { */ case 1:
+			$s = -1; return;
+		/* } */ case 2:
+		_tuple = parentCancelCtx(parent[0]);
+		p = _tuple[0];
+		ok = _tuple[1];
+		/* */ if (ok) { $s = 4; continue; }
+		/* */ $s = 5; continue;
+		/* if (ok) { */ case 4:
+			$r = p.mu.Lock(); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			/* */ if (!($interfaceIsEqual(p.err, $ifaceNil))) { $s = 8; continue; }
+			/* */ $s = 9; continue;
+			/* if (!($interfaceIsEqual(p.err, $ifaceNil))) { */ case 8:
+				$r = child[0].cancel(false, p.err); /* */ $s = 11; case 11: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				$s = 10; continue;
+			/* } else { */ case 9:
+				if (p.children === false) {
+					p.children = {};
+				}
+				_key = child[0]; (p.children || $throwRuntimeError("assignment to entry in nil map"))[canceler.keyFor(_key)] = { k: _key, v: true };
+			/* } */ case 10:
+			$r = p.mu.Unlock(); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$s = 6; continue;
+		/* } else { */ case 5:
+			$go((function(child, parent) { return function $b() {
+				var $ptr, _arg, _r$1, _r$2, _r$3, _r$4, _selection, $s, $r;
+				/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _selection = $f._selection; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+				_r$1 = parent[0].Done(); /* */ $s = 1; case 1: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+				_r$2 = child[0].Done(); /* */ $s = 2; case 2: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+				_r$3 = $select([[_r$1], [_r$2]]); /* */ $s = 3; case 3: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+				_selection = _r$3;
+				/* */ if (_selection[0] === 0) { $s = 4; continue; }
+				/* */ if (_selection[0] === 1) { $s = 5; continue; }
+				/* */ $s = 6; continue;
+				/* if (_selection[0] === 0) { */ case 4:
+					_r$4 = parent[0].Err(); /* */ $s = 7; case 7: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+					_arg = _r$4;
+					$r = child[0].cancel(false, _arg); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					$s = 6; continue;
+				/* } else if (_selection[0] === 1) { */ case 5:
+				/* } */ case 6:
+				$s = -1; return;
+				/* */ } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._arg = _arg; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._selection = _selection; $f.$s = $s; $f.$r = $r; return $f;
+			}; })(child, parent), []);
+		/* } */ case 6:
+		$s = -1; return;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: propagateCancel }; } $f.$ptr = $ptr; $f._key = _key; $f._r = _r; $f._tuple = _tuple; $f.child = child; $f.ok = ok; $f.p = p; $f.parent = parent; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	parentCancelCtx = function(parent) {
+		var $ptr, _ref, c, c$1, c$2, c$3, parent;
+		while (true) {
+			_ref = parent;
+			if ($assertType(_ref, ptrType$2, true)[1]) {
+				c = _ref.$val;
+				return [c, true];
+			} else if ($assertType(_ref, ptrType$3, true)[1]) {
+				c$1 = _ref.$val;
+				return [c$1.cancelCtx, true];
+			} else if ($assertType(_ref, ptrType$4, true)[1]) {
+				c$2 = _ref.$val;
+				parent = c$2.Context;
+			} else {
+				c$3 = _ref;
+				return [ptrType$2.nil, false];
+			}
+		}
+	};
+	removeChild = function(parent, child) {
+		var $ptr, _tuple, child, ok, p, parent, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _tuple = $f._tuple; child = $f.child; ok = $f.ok; p = $f.p; parent = $f.parent; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		_tuple = parentCancelCtx(parent);
+		p = _tuple[0];
+		ok = _tuple[1];
+		if (!ok) {
+			$s = -1; return;
+		}
+		$r = p.mu.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		if (!(p.children === false)) {
+			delete p.children[canceler.keyFor(child)];
+		}
+		$r = p.mu.Unlock(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$s = -1; return;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: removeChild }; } $f.$ptr = $ptr; $f._tuple = _tuple; $f.child = child; $f.ok = ok; $f.p = p; $f.parent = parent; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	cancelCtx.ptr.prototype.Done = function() {
+		var $ptr, c;
+		c = this;
+		return c.done;
+	};
+	cancelCtx.prototype.Done = function() { return this.$val.Done(); };
+	cancelCtx.ptr.prototype.Err = function() {
+		var $ptr, c, $s, $deferred, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; c = $f.c; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
+		c = this;
+		$r = c.mu.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$deferred.push([$methodVal(c.mu, "Unlock"), []]);
+		$s = -1; return c.err;
+		/* */ } return; } } catch(err) { $err = err; $s = -1; return $ifaceNil; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: cancelCtx.ptr.prototype.Err }; } $f.$ptr = $ptr; $f.c = c; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
+	};
+	cancelCtx.prototype.Err = function() { return this.$val.Err(); };
+	cancelCtx.ptr.prototype.String = function() {
+		var $ptr, _r, c, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; c = $f.c; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		c = this;
+		_r = fmt.Sprintf("%v.WithCancel", new sliceType([c.Context])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		$s = -1; return _r;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: cancelCtx.ptr.prototype.String }; } $f.$ptr = $ptr; $f._r = _r; $f.c = c; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	cancelCtx.prototype.String = function() { return this.$val.String(); };
+	cancelCtx.ptr.prototype.cancel = function(removeFromParent, err) {
+		var $ptr, _entry, _i, _keys, _ref, c, child, err, removeFromParent, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _entry = $f._entry; _i = $f._i; _keys = $f._keys; _ref = $f._ref; c = $f.c; child = $f.child; err = $f.err; removeFromParent = $f.removeFromParent; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		c = this;
+		if ($interfaceIsEqual(err, $ifaceNil)) {
+			$panic(new $String("context: internal error: missing cancel error"));
+		}
+		$r = c.mu.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* */ if (!($interfaceIsEqual(c.err, $ifaceNil))) { $s = 2; continue; }
+		/* */ $s = 3; continue;
+		/* if (!($interfaceIsEqual(c.err, $ifaceNil))) { */ case 2:
+			$r = c.mu.Unlock(); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$s = -1; return;
+		/* } */ case 3:
+		c.err = err;
+		$close(c.done);
+		_ref = c.children;
+		_i = 0;
+		_keys = $keys(_ref);
+		/* while (true) { */ case 5:
+			/* if (!(_i < _keys.length)) { break; } */ if(!(_i < _keys.length)) { $s = 6; continue; }
+			_entry = _ref[_keys[_i]];
+			if (_entry === undefined) {
+				_i++;
+				/* continue; */ $s = 5; continue;
+			}
+			child = _entry.k;
+			$r = child.cancel(false, err); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			_i++;
+		/* } */ $s = 5; continue; case 6:
+		c.children = false;
+		$r = c.mu.Unlock(); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* */ if (removeFromParent) { $s = 9; continue; }
+		/* */ $s = 10; continue;
+		/* if (removeFromParent) { */ case 9:
+			$r = removeChild(c.Context, c); /* */ $s = 11; case 11: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* } */ case 10:
+		$s = -1; return;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: cancelCtx.ptr.prototype.cancel }; } $f.$ptr = $ptr; $f._entry = _entry; $f._i = _i; $f._keys = _keys; $f._ref = _ref; $f.c = c; $f.child = child; $f.err = err; $f.removeFromParent = removeFromParent; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	cancelCtx.prototype.cancel = function(removeFromParent, err) { return this.$val.cancel(removeFromParent, err); };
+	timerCtx.ptr.prototype.Deadline = function() {
+		var $ptr, _tmp, _tmp$1, c, deadline, ok;
+		deadline = new time.Time.ptr(new $Int64(0, 0), 0, ptrType$1.nil);
+		ok = false;
+		c = this;
+		_tmp = $clone(c.deadline, time.Time);
+		_tmp$1 = true;
+		time.Time.copy(deadline, _tmp);
+		ok = _tmp$1;
+		return [deadline, ok];
+	};
+	timerCtx.prototype.Deadline = function() { return this.$val.Deadline(); };
+	timerCtx.ptr.prototype.String = function() {
+		var $ptr, _r, c, x, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; c = $f.c; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		c = this;
+		_r = fmt.Sprintf("%v.WithDeadline(%s [%s])", new sliceType([c.cancelCtx.Context, (x = c.deadline, new x.constructor.elem(x)), $clone(c.deadline, time.Time).Sub($clone(time.Now(), time.Time))])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		$s = -1; return _r;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: timerCtx.ptr.prototype.String }; } $f.$ptr = $ptr; $f._r = _r; $f.c = c; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	timerCtx.prototype.String = function() { return this.$val.String(); };
+	timerCtx.ptr.prototype.cancel = function(removeFromParent, err) {
+		var $ptr, c, err, removeFromParent, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; c = $f.c; err = $f.err; removeFromParent = $f.removeFromParent; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		c = this;
+		$r = c.cancelCtx.cancel(false, err); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* */ if (removeFromParent) { $s = 2; continue; }
+		/* */ $s = 3; continue;
+		/* if (removeFromParent) { */ case 2:
+			$r = removeChild(c.cancelCtx.Context, c); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* } */ case 3:
+		$r = c.cancelCtx.mu.Lock(); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		if (!(c.timer === ptrType$5.nil)) {
+			c.timer.Stop();
+			c.timer = ptrType$5.nil;
+		}
+		$r = c.cancelCtx.mu.Unlock(); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$s = -1; return;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: timerCtx.ptr.prototype.cancel }; } $f.$ptr = $ptr; $f.c = c; $f.err = err; $f.removeFromParent = removeFromParent; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	timerCtx.prototype.cancel = function(removeFromParent, err) { return this.$val.cancel(removeFromParent, err); };
+	valueCtx.ptr.prototype.String = function() {
+		var $ptr, _r, c, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; c = $f.c; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		c = this;
+		_r = fmt.Sprintf("%v.WithValue(%#v, %#v)", new sliceType([c.Context, c.key, c.val])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		$s = -1; return _r;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: valueCtx.ptr.prototype.String }; } $f.$ptr = $ptr; $f._r = _r; $f.c = c; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	valueCtx.prototype.String = function() { return this.$val.String(); };
+	valueCtx.ptr.prototype.Value = function(key) {
+		var $ptr, _r, c, key, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; c = $f.c; key = $f.key; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		c = this;
+		if ($interfaceIsEqual(c.key, key)) {
+			$s = -1; return c.val;
+		}
+		_r = c.Context.Value(key); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		$s = -1; return _r;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: valueCtx.ptr.prototype.Value }; } $f.$ptr = $ptr; $f._r = _r; $f.c = c; $f.key = key; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	valueCtx.prototype.Value = function(key) { return this.$val.Value(key); };
+	ptrType.methods = [{prop: "Deadline", name: "Deadline", pkg: "", typ: $funcType([], [time.Time, $Bool], false)}, {prop: "Done", name: "Done", pkg: "", typ: $funcType([], [chanType], false)}, {prop: "Err", name: "Err", pkg: "", typ: $funcType([], [$error], false)}, {prop: "Value", name: "Value", pkg: "", typ: $funcType([$emptyInterface], [$emptyInterface], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}];
+	ptrType$2.methods = [{prop: "Done", name: "Done", pkg: "", typ: $funcType([], [chanType], false)}, {prop: "Err", name: "Err", pkg: "", typ: $funcType([], [$error], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "cancel", name: "cancel", pkg: "golang.org/x/net/context", typ: $funcType([$Bool, $error], [], false)}];
+	ptrType$3.methods = [{prop: "Deadline", name: "Deadline", pkg: "", typ: $funcType([], [time.Time, $Bool], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "cancel", name: "cancel", pkg: "golang.org/x/net/context", typ: $funcType([$Bool, $error], [], false)}];
+	ptrType$4.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Value", name: "Value", pkg: "", typ: $funcType([$emptyInterface], [$emptyInterface], false)}];
+	Context.init([{prop: "Deadline", name: "Deadline", pkg: "", typ: $funcType([], [time.Time, $Bool], false)}, {prop: "Done", name: "Done", pkg: "", typ: $funcType([], [chanType], false)}, {prop: "Err", name: "Err", pkg: "", typ: $funcType([], [$error], false)}, {prop: "Value", name: "Value", pkg: "", typ: $funcType([$emptyInterface], [$emptyInterface], false)}]);
+	CancelFunc.init([], [], false);
+	canceler.init([{prop: "Done", name: "Done", pkg: "", typ: $funcType([], [chanType], false)}, {prop: "cancel", name: "cancel", pkg: "golang.org/x/net/context", typ: $funcType([$Bool, $error], [], false)}]);
+	cancelCtx.init("golang.org/x/net/context", [{prop: "Context", name: "", exported: true, typ: Context, tag: ""}, {prop: "done", name: "done", exported: false, typ: chanType$1, tag: ""}, {prop: "mu", name: "mu", exported: false, typ: sync.Mutex, tag: ""}, {prop: "children", name: "children", exported: false, typ: mapType, tag: ""}, {prop: "err", name: "err", exported: false, typ: $error, tag: ""}]);
+	timerCtx.init("golang.org/x/net/context", [{prop: "cancelCtx", name: "", exported: false, typ: cancelCtx, tag: ""}, {prop: "timer", name: "timer", exported: false, typ: ptrType$5, tag: ""}, {prop: "deadline", name: "deadline", exported: false, typ: time.Time, tag: ""}]);
+	valueCtx.init("golang.org/x/net/context", [{prop: "Context", name: "", exported: true, typ: Context, tag: ""}, {prop: "key", name: "key", exported: false, typ: $emptyInterface, tag: ""}, {prop: "val", name: "val", exported: false, typ: $emptyInterface, tag: ""}]);
+	$init = function() {
+		$pkg.$init = function() {};
+		/* */ var $f, $c = false, $s = 0, $r; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		$r = errors.$init(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = fmt.$init(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = sync.$init(); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = time.$init(); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$pkg.Canceled = errors.New("context canceled");
+		$pkg.DeadlineExceeded = errors.New("context deadline exceeded");
+		background = $newDataPointer(0, ptrType);
+		todo = $newDataPointer(0, ptrType);
 		/* */ } return; } if ($f === undefined) { $f = { $blk: $init }; } $f.$s = $s; $f.$r = $r; return $f;
 	};
 	$pkg.$init = $init;
@@ -29270,13 +29736,14 @@ $packages["os/exec"] = (function() {
 	return $pkg;
 })();
 $packages["github.com/yuin/gopher-lua"] = (function() {
-	var $pkg = {}, $init, bufio, errors, fmt, ast, parse, pm, io, ioutil, math, rand, os, exec, filepath, reflect, runtime, sort, strconv, strings, atomic, syscall, time, iface, allocator, expContextType, expcontext, assigncontext, lblabels, constLValueExpr, CompileError, codeStore, varNamePoolValue, varNamePool, codeBlock, funcContext, LNumber, DbgLocalInfo, DbgCall, FunctionProto, Upvalue, lFile, lFileType, luaLib, opArgMode, opType, opProp, ApiError, ApiErrorType, ResumeState, P, Options, Debug, callFrame, callFrameStack, registry, replaceInfo, strMatchData, lValueArraySorter, flagScanner, LValueType, LValue, LNilType, LBool, LString, LTable, LFunction, LGFunction, Global, LState, LUserData, LChannel, instFunc, ptrType, arrayType, ptrType$1, ptrType$2, structType, sliceType, sliceType$1, sliceType$2, sliceType$3, sliceType$4, sliceType$5, ptrType$3, sliceType$6, arrayType$1, ptrType$4, ptrType$5, ptrType$6, ptrType$7, ptrType$8, ptrType$9, ptrType$10, sliceType$7, ptrType$11, ptrType$12, sliceType$8, chanType, sliceType$9, ptrType$13, ptrType$14, ptrType$15, ptrType$16, ptrType$17, ptrType$18, sliceType$10, ptrType$19, ptrType$20, ptrType$21, ptrType$22, sliceType$11, sliceType$12, sliceType$13, ptrType$23, ptrType$24, ptrType$25, ptrType$26, ptrType$27, ptrType$28, ptrType$29, ptrType$30, ptrType$31, ptrType$32, ptrType$33, ptrType$34, ptrType$35, sliceType$14, ptrType$36, ptrType$37, ptrType$38, ptrType$39, ptrType$40, ptrType$41, ptrType$42, ptrType$43, ptrType$44, ptrType$45, ptrType$46, sliceType$15, ptrType$47, ptrType$48, ptrType$49, ptrType$50, ptrType$51, ptrType$52, ptrType$53, sliceType$16, ptrType$54, ptrType$55, sliceType$17, ptrType$56, sliceType$18, sliceType$19, ptrType$57, sliceType$20, ptrType$58, ptrType$59, ptrType$60, ptrType$61, ptrType$62, sliceType$21, ptrType$63, sliceType$22, ptrType$64, sliceType$23, ptrType$65, ptrType$66, ptrType$67, ptrType$68, ptrType$69, arrayType$2, structType$1, arrayType$3, sliceType$24, ptrType$70, ptrType$71, mapType, ptrType$72, sliceType$25, ptrType$73, funcType, mapType$1, mapType$2, mapType$3, mapType$4, mapType$5, funcType$1, baseFuncs, loopdetection, channelFuncs, channelMethods, _ecnone0, _ecnonem1, _ecnonem2, ecfuncdef, coFuncs, debugFuncs, ioFuncs, stdFiles, fileMethods, fileSeekOptions, filebufOptions, ioOpenOpions, ioPopenOptions, luaLibs, loLoaders, loFuncs, mathFuncs, opProps, startedAt, osFuncs, strFuncs, tableFuncs, cDateFlagToGo, lValueNames, jumpTable, newAllocator, OpenBase, baseAssert, baseCollectGarbage, baseDoFile, baseError, baseGetFEnv, baseGetMetatable, ipairsaux, baseIpairs, loadaux, baseLoad, baseLoadFile, baseLoadString, baseNext, pairsaux, basePairs, basePCall, basePrint, base_PrintRegs, baseRawEqual, baseRawGet, baseRawSet, baseSelect, baseSetFEnv, baseSetMetatable, baseToNumber, baseToString, baseType, baseUnpack, baseXPCall, loModule, loRequire, checkChannel, checkGoroutineSafe, OpenChannel, channelMake, channelSelect, channelReceive, channelSend, channelClose, ecupdate, ecnone, sline, eline, savereg, raiseCompileError, isVarArgReturnExpr, lnumberValue, newVarNamePool, newCodeBlock, newFuncContext, compileChunk, compileBlock, compileStmt, compileAssignStmtLeft, compileAssignStmtRight, compileAssignStmt, compileRegAssignment, compileLocalAssignStmt, compileReturnStmt, compileIfStmt, compileBranchCondition, compileWhileStmt, compileRepeatStmt, compileBreakStmt, compileFuncDefStmt, compileNumberForStmt, compileGenericForStmt, compileExpr, compileExprWithPropagation, compileExprWithKMVPropagation, compileExprWithMVPropagation, constFold, compileFunctionExpr, compileTableExpr, compileArithmeticOpExpr, compileStringConcatOpExpr, compileUnaryOpExpr, compileRelationalOpExprAux, compileRelationalOpExpr, compileLogicalOpExpr, compileLogicalOpExprAux, compileFuncCallExpr, loadRk, getIdentRefType, getExprName, patchCode, Compile, init, OpenCoroutine, coCreate, coYield, coResume, coRunning, coStatus, wrapaux, coWrap, OpenDebug, debugGetFEnv, debugGetInfo, debugGetLocal, debugGetMetatable, debugGetUpvalue, debugSetFEnv, debugSetLocal, debugSetMetatable, debugSetUpvalue, debugTraceback, UpvalueIndex, newFunctionProto, newLFunctionL, newLFunctionG, checkFile, errorIfFileIsClosed, newFile, newProcess, fileDefOut, fileDefIn, fileIsWritable, fileIsReadable, OpenIo, fileToString, fileWriteAux, fileCloseAux, fileFlushAux, fileReadAux, fileSeek, fileWrite, fileClose, fileFlush, fileLinesIter, fileLines, fileRead, fileSetVBuf, ioInput, ioClose, ioFlush, ioLinesIter, ioLines, ioOpenFile, ioPopen, ioRead, ioType, ioTmpFile, ioOutput, ioWrite, loGetPath, loFindFile, OpenPackage, loLoaderPreload, loLoaderLua, loLoadLib, loSeeAll, OpenMath, mathAbs, mathAcos, mathAsin, mathAtan, mathAtan2, mathCeil, mathCos, mathCosh, mathDeg, mathExp, mathFloor, mathFmod, mathFrexp, mathLdexp, mathLog, mathLog10, mathMax, mathMin, mathMod, mathModf, mathPow, mathRad, mathRandom, mathRandomseed, mathSin, mathSinh, mathSqrt, mathTan, mathTanh, opGetOpCode, opSetOpCode, opGetArgA, opSetArgA, opGetArgB, opSetArgB, opGetArgC, opSetArgC, opGetArgBx, opSetArgBx, opGetArgSbx, opSetArgSbx, opCreateABC, opCreateABx, opCreateASbx, opIsK, opRkAsk, opToString, init$1, getIntField, getBoolField, OpenOs, osClock, osDiffTime, osExecute, osExit, osDate, osGetEnv, osRemove, osRename, osSetLocale, osSetEnv, osTime, osTmpname, newApiError, newApiErrorS, newApiErrorE, newCallFrameStack, newRegistry, newGlobal, panicWithTraceback, panicWithoutTraceback, newLState, NewState, OpenString, strByte, strChar, strDump, strFind, strFormat, strGsub, checkCaptureIndex, capturedString, strGsubDoReplace, strGsubStr, strGsubTable, strGsubFunc, strGmatchIter, strGmatch, strLen, strLower, strMatch, strRep, strReverse, strSub, strUpper, luaIndex2StringIndex, newLTable, OpenTable, tableSort, tableGetN, tableMaxN, tableRemove, tableConcat, tableInsert, intMin, intMax, defaultFormat, newFlagScanner, strftime, isInteger, isArrayKey, parseNumber, popenArgs, isGoroutineSafe, readBufioSize, readBufioLine, int2Fb, strCmp, LVIsFalse, LVAsBool, LVAsString, LVCanConvToString, LVAsNumber, mainLoop, switchToParentThread, callGFunction, threadRun, init$2, opArith, luaModulo, numberArith, objectArith, stringConcat, lessThan, equals, objectRationalWithError, objectRational;
+	var $pkg = {}, $init, bufio, errors, fmt, ast, parse, pm, context, io, ioutil, math, rand, os, exec, filepath, reflect, runtime, sort, strconv, strings, atomic, syscall, time, iface, allocator, expContextType, expcontext, assigncontext, lblabels, constLValueExpr, CompileError, codeStore, varNamePoolValue, varNamePool, codeBlock, funcContext, LNumber, DbgLocalInfo, DbgCall, FunctionProto, Upvalue, lFile, lFileType, luaLib, opArgMode, opType, opProp, ApiError, ApiErrorType, ResumeState, P, Options, Debug, callFrame, callFrameStack, registry, replaceInfo, strMatchData, lValueArraySorter, flagScanner, LValueType, LValue, LNilType, LBool, LString, LTable, LFunction, LGFunction, Global, LState, LUserData, LChannel, instFunc, ptrType, arrayType, ptrType$1, ptrType$2, structType, sliceType, sliceType$1, sliceType$2, sliceType$3, sliceType$4, sliceType$5, ptrType$3, sliceType$6, arrayType$1, ptrType$4, ptrType$5, ptrType$6, ptrType$7, ptrType$8, ptrType$9, ptrType$10, sliceType$7, ptrType$11, ptrType$12, sliceType$8, chanType, sliceType$9, ptrType$13, ptrType$14, ptrType$15, ptrType$16, ptrType$17, ptrType$18, sliceType$10, ptrType$19, ptrType$20, ptrType$21, ptrType$22, sliceType$11, sliceType$12, sliceType$13, ptrType$23, ptrType$24, ptrType$25, ptrType$26, ptrType$27, ptrType$28, ptrType$29, ptrType$30, ptrType$31, ptrType$32, ptrType$33, ptrType$34, ptrType$35, sliceType$14, ptrType$36, ptrType$37, ptrType$38, ptrType$39, ptrType$40, ptrType$41, ptrType$42, ptrType$43, ptrType$44, ptrType$45, ptrType$46, sliceType$15, ptrType$47, ptrType$48, ptrType$49, ptrType$50, ptrType$51, ptrType$52, ptrType$53, sliceType$16, ptrType$54, ptrType$55, sliceType$17, ptrType$56, sliceType$18, sliceType$19, ptrType$57, sliceType$20, ptrType$58, ptrType$59, ptrType$60, ptrType$61, ptrType$62, sliceType$21, ptrType$63, sliceType$22, ptrType$64, sliceType$23, ptrType$65, ptrType$66, ptrType$67, ptrType$68, ptrType$69, arrayType$2, structType$1, arrayType$3, sliceType$24, ptrType$70, ptrType$71, ptrType$72, ptrType$73, mapType, ptrType$74, sliceType$25, ptrType$75, funcType, mapType$1, mapType$2, mapType$3, mapType$4, mapType$5, funcType$1, funcType$2, baseFuncs, loopdetection, channelFuncs, channelMethods, _ecnone0, _ecnonem1, _ecnonem2, ecfuncdef, coFuncs, debugFuncs, ioFuncs, stdFiles, fileMethods, fileSeekOptions, filebufOptions, ioOpenOpions, ioPopenOptions, luaLibs, loLoaders, loFuncs, mathFuncs, opProps, startedAt, osFuncs, strFuncs, tableFuncs, cDateFlagToGo, lValueNames, jumpTable, newAllocator, OpenBase, baseAssert, baseCollectGarbage, baseDoFile, baseError, baseGetFEnv, baseGetMetatable, ipairsaux, baseIpairs, loadaux, baseLoad, baseLoadFile, baseLoadString, baseNext, pairsaux, basePairs, basePCall, basePrint, base_PrintRegs, baseRawEqual, baseRawGet, baseRawSet, baseSelect, baseSetFEnv, baseSetMetatable, baseToNumber, baseToString, baseType, baseUnpack, baseXPCall, loModule, loRequire, checkChannel, checkGoroutineSafe, OpenChannel, channelMake, channelSelect, channelReceive, channelSend, channelClose, ecupdate, ecnone, sline, eline, savereg, raiseCompileError, isVarArgReturnExpr, lnumberValue, newVarNamePool, newCodeBlock, newFuncContext, compileChunk, compileBlock, compileStmt, compileAssignStmtLeft, compileAssignStmtRight, compileAssignStmt, compileRegAssignment, compileLocalAssignStmt, compileReturnStmt, compileIfStmt, compileBranchCondition, compileWhileStmt, compileRepeatStmt, compileBreakStmt, compileFuncDefStmt, compileNumberForStmt, compileGenericForStmt, compileExpr, compileExprWithPropagation, compileExprWithKMVPropagation, compileExprWithMVPropagation, constFold, compileFunctionExpr, compileTableExpr, compileArithmeticOpExpr, compileStringConcatOpExpr, compileUnaryOpExpr, compileRelationalOpExprAux, compileRelationalOpExpr, compileLogicalOpExpr, compileLogicalOpExprAux, compileFuncCallExpr, loadRk, getIdentRefType, getExprName, patchCode, Compile, init, OpenCoroutine, coCreate, coYield, coResume, coRunning, coStatus, wrapaux, coWrap, OpenDebug, debugGetFEnv, debugGetInfo, debugGetLocal, debugGetMetatable, debugGetUpvalue, debugSetFEnv, debugSetLocal, debugSetMetatable, debugSetUpvalue, debugTraceback, UpvalueIndex, newFunctionProto, newLFunctionL, newLFunctionG, checkFile, errorIfFileIsClosed, newFile, newProcess, fileDefOut, fileDefIn, fileIsWritable, fileIsReadable, OpenIo, fileToString, fileWriteAux, fileCloseAux, fileFlushAux, fileReadAux, fileSeek, fileWrite, fileClose, fileFlush, fileLinesIter, fileLines, fileRead, fileSetVBuf, ioInput, ioClose, ioFlush, ioLinesIter, ioLines, ioOpenFile, ioPopen, ioRead, ioType, ioTmpFile, ioOutput, ioWrite, loGetPath, loFindFile, OpenPackage, loLoaderPreload, loLoaderLua, loLoadLib, loSeeAll, OpenMath, mathAbs, mathAcos, mathAsin, mathAtan, mathAtan2, mathCeil, mathCos, mathCosh, mathDeg, mathExp, mathFloor, mathFmod, mathFrexp, mathLdexp, mathLog, mathLog10, mathMax, mathMin, mathMod, mathModf, mathPow, mathRad, mathRandom, mathRandomseed, mathSin, mathSinh, mathSqrt, mathTan, mathTanh, opGetOpCode, opSetOpCode, opGetArgA, opSetArgA, opGetArgB, opSetArgB, opGetArgC, opSetArgC, opGetArgBx, opSetArgBx, opGetArgSbx, opSetArgSbx, opCreateABC, opCreateABx, opCreateASbx, opIsK, opRkAsk, opToString, init$1, getIntField, getBoolField, OpenOs, osClock, osDiffTime, osExecute, osExit, osDate, osGetEnv, osRemove, osRename, osSetLocale, osSetEnv, osTime, osTmpname, newApiError, newApiErrorS, newApiErrorE, newCallFrameStack, newRegistry, newGlobal, panicWithTraceback, panicWithoutTraceback, newLState, NewState, OpenString, strByte, strChar, strDump, strFind, strFormat, strGsub, checkCaptureIndex, capturedString, strGsubDoReplace, strGsubStr, strGsubTable, strGsubFunc, strGmatchIter, strGmatch, strLen, strLower, strMatch, strRep, strReverse, strSub, strUpper, luaIndex2StringIndex, newLTable, OpenTable, tableSort, tableGetN, tableMaxN, tableRemove, tableConcat, tableInsert, intMin, intMax, defaultFormat, newFlagScanner, strftime, isInteger, isArrayKey, parseNumber, popenArgs, isGoroutineSafe, readBufioSize, readBufioLine, int2Fb, strCmp, unsafeFastStringToReadOnlyBytes, LVIsFalse, LVAsBool, LVAsString, LVCanConvToString, LVAsNumber, mainLoop, mainLoopWithContext, switchToParentThread, callGFunction, threadRun, init$2, opArith, luaModulo, numberArith, objectArith, stringConcat, lessThan, equals, objectRationalWithError, objectRational;
 	bufio = $packages["bufio"];
 	errors = $packages["errors"];
 	fmt = $packages["fmt"];
 	ast = $packages["github.com/yuin/gopher-lua/ast"];
 	parse = $packages["github.com/yuin/gopher-lua/parse"];
 	pm = $packages["github.com/yuin/gopher-lua/pm"];
+	context = $packages["golang.org/x/net/context"];
 	io = $packages["io"];
 	ioutil = $packages["io/ioutil"];
 	math = $packages["math"];
@@ -29340,7 +29807,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	assigncontext = $pkg.assigncontext = $newType(0, $kindStruct, "lua.assigncontext", true, "github.com/yuin/gopher-lua", false, function(ec_, keyrk_, valuerk_, keyks_, needmove_) {
 		this.$val = this;
 		if (arguments.length === 0) {
-			this.ec = ptrType$71.nil;
+			this.ec = ptrType$73.nil;
 			this.keyrk = 0;
 			this.valuerk = 0;
 			this.keyks = false;
@@ -29377,15 +29844,15 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		this.ExprBase = ExprBase_;
 		this.Value = Value_;
 	});
-	CompileError = $pkg.CompileError = $newType(0, $kindStruct, "lua.CompileError", true, "github.com/yuin/gopher-lua", true, function(Context_, Line_, Message_) {
+	CompileError = $pkg.CompileError = $newType(0, $kindStruct, "lua.CompileError", true, "github.com/yuin/gopher-lua", true, function(context_, Line_, Message_) {
 		this.$val = this;
 		if (arguments.length === 0) {
-			this.Context = ptrType$13.nil;
+			this.context = ptrType$13.nil;
 			this.Line = 0;
 			this.Message = "";
 			return;
 		}
-		this.Context = Context_;
+		this.context = context_;
 		this.Line = Line_;
 		this.Message = Message_;
 	});
@@ -29822,7 +30289,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		this.tempFiles = tempFiles_;
 		this.gccount = gccount_;
 	});
-	LState = $pkg.LState = $newType(0, $kindStruct, "lua.LState", true, "github.com/yuin/gopher-lua", true, function(G_, Parent_, Env_, Panic_, Dead_, Options_, stop_, reg_, stack_, alloc_, currentFrame_, wrapped_, uvcache_, hasErrorFunc_) {
+	LState = $pkg.LState = $newType(0, $kindStruct, "lua.LState", true, "github.com/yuin/gopher-lua", true, function(G_, Parent_, Env_, Panic_, Dead_, Options_, stop_, reg_, stack_, alloc_, currentFrame_, wrapped_, uvcache_, hasErrorFunc_, mainLoop_, ctx_) {
 		this.$val = this;
 		if (arguments.length === 0) {
 			this.G = ptrType$65.nil;
@@ -29839,6 +30306,8 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			this.wrapped = false;
 			this.uvcache = ptrType$57.nil;
 			this.hasErrorFunc = false;
+			this.mainLoop = $throwNilPointerError;
+			this.ctx = $ifaceNil;
 			return;
 		}
 		this.G = G_;
@@ -29855,6 +30324,8 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		this.wrapped = wrapped_;
 		this.uvcache = uvcache_;
 		this.hasErrorFunc = hasErrorFunc_;
+		this.mainLoop = mainLoop_;
+		this.ctx = ctx_;
 	});
 	LUserData = $pkg.LUserData = $newType(0, $kindStruct, "lua.LUserData", true, "github.com/yuin/gopher-lua", true, function(Value_, Env_, Metatable_) {
 		this.$val = this;
@@ -29973,11 +30444,13 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	arrayType$3 = $arrayType(structType$1, 61);
 	sliceType$24 = $sliceType(replaceInfo);
 	ptrType$70 = $ptrType(strMatchData);
-	ptrType$71 = $ptrType(expcontext);
+	ptrType$71 = $ptrType(reflect.StringHeader);
+	ptrType$72 = $ptrType($String);
+	ptrType$73 = $ptrType(expcontext);
 	mapType = $mapType($Int, $Int);
-	ptrType$72 = $ptrType(pm.MatchData);
-	sliceType$25 = $sliceType(ptrType$72);
-	ptrType$73 = $ptrType(flagScanner);
+	ptrType$74 = $ptrType(pm.MatchData);
+	sliceType$25 = $sliceType(ptrType$74);
+	ptrType$75 = $ptrType(flagScanner);
 	funcType = $funcType([LValue, LValue], [], false);
 	mapType$1 = $mapType(LValue, LValue);
 	mapType$2 = $mapType($String, LValue);
@@ -29985,6 +30458,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	mapType$4 = $mapType($Int, LValue);
 	mapType$5 = $mapType($String, LGFunction);
 	funcType$1 = $funcType([ptrType$10], [], false);
+	funcType$2 = $funcType([ptrType$10, ptrType$11], [], false);
 	newAllocator = function(size) {
 		var $ptr, al, i, size, v, v$24ptr, vp, x;
 		al = new allocator.ptr(0, size, $makeSlice(sliceType$5, size), ptrType$3.nil, $makeSlice(sliceType$6, size), ptrType$3.nil, 0, arrayType$1.zero());
@@ -31850,14 +32324,14 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		}
 		return ec.reg;
 	};
-	raiseCompileError = function(context, line, format, args) {
-		var $ptr, _r, args, context, format, line, msg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; args = $f.args; context = $f.context; format = $f.format; line = $f.line; msg = $f.msg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	raiseCompileError = function(context$1, line, format, args) {
+		var $ptr, _r, args, context$1, format, line, msg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; args = $f.args; context$1 = $f.context$1; format = $f.format; line = $f.line; msg = $f.msg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		_r = fmt.Sprintf(format, args); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		msg = _r;
-		$panic(new CompileError.ptr(context, line, msg));
+		$panic(new CompileError.ptr(context$1, line, msg));
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: raiseCompileError }; } $f.$ptr = $ptr; $f._r = _r; $f.args = args; $f.context = context; $f.format = format; $f.line = line; $f.msg = msg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: raiseCompileError }; } $f.$ptr = $ptr; $f._r = _r; $f.args = args; $f.context$1 = context$1; $f.format = format; $f.line = line; $f.msg = msg; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	isVarArgReturnExpr = function(expr) {
 		var $ptr, _ref, ex, ex$1, expr;
@@ -31903,7 +32377,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		var $ptr, _r, e, $s, $r;
 		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; e = $f.e; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		e = this;
-		_r = fmt.Sprintf("compile error near line(%v) %v: %v", new sliceType$7([new $Int(e.Line), new $String(e.Context.Proto.SourceName), new $String(e.Message)])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		_r = fmt.Sprintf("compile error near line(%v) %v: %v", new sliceType$7([new $Int(e.Line), new $String(e.context.Proto.SourceName), new $String(e.Message)])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		$s = -1; return _r;
 		/* */ } return; } if ($f === undefined) { $f = { $blk: CompileError.ptr.prototype.Error }; } $f.$ptr = $ptr; $f._r = _r; $f.e = e; $f.$s = $s; $f.$r = $r; return $f;
 	};
@@ -32309,23 +32783,23 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		return fc.regTop;
 	};
 	funcContext.prototype.RegTop = function() { return this.$val.RegTop(); };
-	compileChunk = function(context, chunk) {
-		var $ptr, _i, _ref, chunk, context, stmt, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _i = $f._i; _ref = $f._ref; chunk = $f.chunk; context = $f.context; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileChunk = function(context$1, chunk) {
+		var $ptr, _i, _ref, chunk, context$1, stmt, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _i = $f._i; _ref = $f._ref; chunk = $f.chunk; context$1 = $f.context$1; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		_ref = chunk;
 		_i = 0;
 		/* while (true) { */ case 1:
 			/* if (!(_i < _ref.$length)) { break; } */ if(!(_i < _ref.$length)) { $s = 2; continue; }
 			stmt = ((_i < 0 || _i >= _ref.$length) ? ($throwRuntimeError("index out of range"), undefined) : _ref.$array[_ref.$offset + _i]);
-			$r = compileStmt(context, stmt); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileStmt(context$1, stmt); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			_i++;
 		/* } */ $s = 1; continue; case 2:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileChunk }; } $f.$ptr = $ptr; $f._i = _i; $f._ref = _ref; $f.chunk = chunk; $f.context = context; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileChunk }; } $f.$ptr = $ptr; $f._i = _i; $f._ref = _ref; $f.chunk = chunk; $f.context$1 = context$1; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileBlock = function(context, chunk) {
-		var $ptr, _i, _r, _r$1, _r$2, _ref, chunk, context, ph, stmt, x, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _ref = $f._ref; chunk = $f.chunk; context = $f.context; ph = $f.ph; stmt = $f.stmt; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileBlock = function(context$1, chunk) {
+		var $ptr, _i, _r, _r$1, _r$2, _ref, chunk, context$1, ph, stmt, x, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _ref = $f._ref; chunk = $f.chunk; context$1 = $f.context$1; ph = $f.ph; stmt = $f.stmt; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		if (chunk.$length === 0) {
 			$s = -1; return;
 		}
@@ -32334,23 +32808,23 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		$r = ph.SetLine(_r); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		_r$1 = eline((x = chunk.$length - 1 >> 0, ((x < 0 || x >= chunk.$length) ? ($throwRuntimeError("index out of range"), undefined) : chunk.$array[chunk.$offset + x]))); /* */ $s = 3; case 3: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		$r = ph.SetLastLine(_r$1); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = context.EnterBlock(0, ph); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = context$1.EnterBlock(0, ph); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		_ref = chunk;
 		_i = 0;
 		/* while (true) { */ case 6:
 			/* if (!(_i < _ref.$length)) { break; } */ if(!(_i < _ref.$length)) { $s = 7; continue; }
 			stmt = ((_i < 0 || _i >= _ref.$length) ? ($throwRuntimeError("index out of range"), undefined) : _ref.$array[_ref.$offset + _i]);
-			$r = compileStmt(context, stmt); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileStmt(context$1, stmt); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			_i++;
 		/* } */ $s = 6; continue; case 7:
-		_r$2 = context.LeaveBlock(); /* */ $s = 9; case 9: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+		_r$2 = context$1.LeaveBlock(); /* */ $s = 9; case 9: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 		_r$2;
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileBlock }; } $f.$ptr = $ptr; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._ref = _ref; $f.chunk = chunk; $f.context = context; $f.ph = ph; $f.stmt = stmt; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileBlock }; } $f.$ptr = $ptr; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._ref = _ref; $f.chunk = chunk; $f.context$1 = context$1; $f.ph = ph; $f.stmt = stmt; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileStmt = function(context, stmt) {
-		var $ptr, _r, _r$1, _ref, context, st, st$1, st$10, st$11, st$2, st$3, st$4, st$5, st$6, st$7, st$8, st$9, stmt, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _ref = $f._ref; context = $f.context; st = $f.st; st$1 = $f.st$1; st$10 = $f.st$10; st$11 = $f.st$11; st$2 = $f.st$2; st$3 = $f.st$3; st$4 = $f.st$4; st$5 = $f.st$5; st$6 = $f.st$6; st$7 = $f.st$7; st$8 = $f.st$8; st$9 = $f.st$9; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileStmt = function(context$1, stmt) {
+		var $ptr, _r, _r$1, _ref, context$1, st, st$1, st$10, st$11, st$2, st$3, st$4, st$5, st$6, st$7, st$8, st$9, stmt, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _ref = $f._ref; context$1 = $f.context$1; st = $f.st; st$1 = $f.st$1; st$10 = $f.st$10; st$11 = $f.st$11; st$2 = $f.st$2; st$3 = $f.st$3; st$4 = $f.st$4; st$5 = $f.st$5; st$6 = $f.st$6; st$7 = $f.st$7; st$8 = $f.st$8; st$9 = $f.st$9; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		_ref = stmt;
 		/* */ if ($assertType(_ref, ptrType$23, true)[1]) { $s = 1; continue; }
 		/* */ if ($assertType(_ref, ptrType$24, true)[1]) { $s = 2; continue; }
@@ -32367,64 +32841,64 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* */ $s = 13; continue;
 		/* if ($assertType(_ref, ptrType$23, true)[1]) { */ case 1:
 			st = _ref.$val;
-			$r = compileAssignStmt(context, st); /* */ $s = 14; case 14: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileAssignStmt(context$1, st); /* */ $s = 14; case 14: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$24, true)[1]) { */ case 2:
 			st$1 = _ref.$val;
-			$r = compileLocalAssignStmt(context, st$1); /* */ $s = 15; case 15: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileLocalAssignStmt(context$1, st$1); /* */ $s = 15; case 15: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$25, true)[1]) { */ case 3:
 			st$2 = _ref.$val;
-			_r = compileFuncCallExpr(context, context.RegTop(), $assertType(st$2.Expr, ptrType$14), ecnone(-1)); /* */ $s = 16; case 16: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+			_r = compileFuncCallExpr(context$1, context$1.RegTop(), $assertType(st$2.Expr, ptrType$14), ecnone(-1)); /* */ $s = 16; case 16: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 			_r;
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$26, true)[1]) { */ case 4:
 			st$3 = _ref.$val;
-			$r = context.EnterBlock(0, st$3); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			$r = compileChunk(context, st$3.Stmts); /* */ $s = 18; case 18: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			_r$1 = context.LeaveBlock(); /* */ $s = 19; case 19: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+			$r = context$1.EnterBlock(0, st$3); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileChunk(context$1, st$3.Stmts); /* */ $s = 18; case 18: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			_r$1 = context$1.LeaveBlock(); /* */ $s = 19; case 19: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			_r$1;
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$27, true)[1]) { */ case 5:
 			st$4 = _ref.$val;
-			$r = compileWhileStmt(context, st$4); /* */ $s = 20; case 20: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileWhileStmt(context$1, st$4); /* */ $s = 20; case 20: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$28, true)[1]) { */ case 6:
 			st$5 = _ref.$val;
-			$r = compileRepeatStmt(context, st$5); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileRepeatStmt(context$1, st$5); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$29, true)[1]) { */ case 7:
 			st$6 = _ref.$val;
-			$r = compileFuncDefStmt(context, st$6); /* */ $s = 22; case 22: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileFuncDefStmt(context$1, st$6); /* */ $s = 22; case 22: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$30, true)[1]) { */ case 8:
 			st$7 = _ref.$val;
-			$r = compileReturnStmt(context, st$7); /* */ $s = 23; case 23: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileReturnStmt(context$1, st$7); /* */ $s = 23; case 23: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$31, true)[1]) { */ case 9:
 			st$8 = _ref.$val;
-			$r = compileIfStmt(context, st$8); /* */ $s = 24; case 24: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileIfStmt(context$1, st$8); /* */ $s = 24; case 24: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$32, true)[1]) { */ case 10:
 			st$9 = _ref.$val;
-			$r = compileBreakStmt(context, st$9); /* */ $s = 25; case 25: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileBreakStmt(context$1, st$9); /* */ $s = 25; case 25: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$33, true)[1]) { */ case 11:
 			st$10 = _ref.$val;
-			$r = compileNumberForStmt(context, st$10); /* */ $s = 26; case 26: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileNumberForStmt(context$1, st$10); /* */ $s = 26; case 26: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 13; continue;
 		/* } else if ($assertType(_ref, ptrType$34, true)[1]) { */ case 12:
 			st$11 = _ref.$val;
-			$r = compileGenericForStmt(context, st$11); /* */ $s = 27; case 27: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileGenericForStmt(context$1, st$11); /* */ $s = 27; case 27: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 13:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileStmt }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._ref = _ref; $f.context = context; $f.st = st; $f.st$1 = st$1; $f.st$10 = st$10; $f.st$11 = st$11; $f.st$2 = st$2; $f.st$3 = st$3; $f.st$4 = st$4; $f.st$5 = st$5; $f.st$6 = st$6; $f.st$7 = st$7; $f.st$8 = st$8; $f.st$9 = st$9; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileStmt }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._ref = _ref; $f.context$1 = context$1; $f.st = st; $f.st$1 = st$1; $f.st$10 = st$10; $f.st$11 = st$11; $f.st$2 = st$2; $f.st$3 = st$3; $f.st$4 = st$4; $f.st$5 = st$5; $f.st$6 = st$6; $f.st$7 = st$7; $f.st$8 = st$8; $f.st$9 = st$9; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileAssignStmtLeft = function(context, stmt) {
-		var $ptr, _1, _i, _r, _ref, _ref$1, _tuple, ac, acs, context, ec, i, identtype, islast, lhs, ok, reg, st, st$1, st$2, stmt, x, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _i = $f._i; _r = $f._r; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; ac = $f.ac; acs = $f.acs; context = $f.context; ec = $f.ec; i = $f.i; identtype = $f.identtype; islast = $f.islast; lhs = $f.lhs; ok = $f.ok; reg = $f.reg; st = $f.st; st$1 = $f.st$1; st$2 = $f.st$2; stmt = $f.stmt; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileAssignStmtLeft = function(context$1, stmt) {
+		var $ptr, _1, _i, _r, _ref, _ref$1, _tuple, ac, acs, context$1, ec, i, identtype, islast, lhs, ok, reg, st, st$1, st$2, stmt, x, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _i = $f._i; _r = $f._r; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; ac = $f.ac; acs = $f.acs; context$1 = $f.context$1; ec = $f.ec; i = $f.i; identtype = $f.identtype; islast = $f.islast; lhs = $f.lhs; ok = $f.ok; reg = $f.reg; st = $f.st; st$1 = $f.st$1; st$2 = $f.st$2; stmt = $f.stmt; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		reg = [reg];
-		reg[0] = context.RegTop();
+		reg[0] = context$1.RegTop();
 		acs = $makeSlice(sliceType$14, 0, stmt.Lhs.$length);
 		_ref = stmt.Lhs;
 		_i = 0;
@@ -32439,7 +32913,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* */ $s = 5; continue;
 			/* if ($assertType(_ref$1, ptrType$36, true)[1]) { */ case 3:
 				st = _ref$1.$val;
-				identtype = getIdentRefType(context, context, st);
+				identtype = getIdentRefType(context$1, context$1, st);
 				ec = new expcontext.ptr(identtype, 256, 0);
 					_1 = identtype;
 					/* */ if (_1 === (0)) { $s = 8; continue; }
@@ -32447,15 +32921,15 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					/* */ if (_1 === (2)) { $s = 10; continue; }
 					/* */ $s = 11; continue;
 					/* if (_1 === (0)) { */ case 8:
-						_r = context.ConstIndex(new LString(st.Value)); /* */ $s = 12; case 12: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+						_r = context$1.ConstIndex(new LString(st.Value)); /* */ $s = 12; case 12: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 						_r;
 						$s = 11; continue;
 					/* } else if (_1 === (1)) { */ case 9:
-						context.Upvalues.RegisterUnique(st.Value);
+						context$1.Upvalues.RegisterUnique(st.Value);
 						$s = 11; continue;
 					/* } else if (_1 === (2)) { */ case 10:
 						if (islast) {
-							ec.reg = context.FindLocalVar(st.Value);
+							ec.reg = context$1.FindLocalVar(st.Value);
 						}
 					/* } */ case 11:
 				case 7:
@@ -32464,8 +32938,8 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* } else if ($assertType(_ref$1, ptrType$37, true)[1]) { */ case 4:
 				st$1 = _ref$1.$val;
 				ac = new assigncontext.ptr(new expcontext.ptr(3, 256, 0), 0, 0, false, false);
-				$r = compileExprWithKMVPropagation(context, st$1.Object, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (x = ac.ec, (x.$ptr_reg || (x.$ptr_reg = new ptrType$38(function() { return this.$target.reg; }, function($v) { this.$target.reg = $v; }, x))))); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-				$r = compileExprWithKMVPropagation(context, st$1.Key, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (ac.$ptr_keyrk || (ac.$ptr_keyrk = new ptrType$38(function() { return this.$target.keyrk; }, function($v) { this.$target.keyrk = $v; }, ac)))); /* */ $s = 14; case 14: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				$r = compileExprWithKMVPropagation(context$1, st$1.Object, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (x = ac.ec, (x.$ptr_reg || (x.$ptr_reg = new ptrType$38(function() { return this.$target.reg; }, function($v) { this.$target.reg = $v; }, x))))); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				$r = compileExprWithKMVPropagation(context$1, st$1.Key, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (ac.$ptr_keyrk || (ac.$ptr_keyrk = new ptrType$38(function() { return this.$target.keyrk; }, function($v) { this.$target.keyrk = $v; }, ac)))); /* */ $s = 14; case 14: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 				_tuple = $assertType(st$1.Key, ptrType$39, true);
 				ok = _tuple[1];
 				if (ok) {
@@ -32480,11 +32954,11 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			_i++;
 		/* } */ $s = 1; continue; case 2:
 		$s = -1; return [reg[0], acs];
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileAssignStmtLeft }; } $f.$ptr = $ptr; $f._1 = _1; $f._i = _i; $f._r = _r; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f.ac = ac; $f.acs = acs; $f.context = context; $f.ec = ec; $f.i = i; $f.identtype = identtype; $f.islast = islast; $f.lhs = lhs; $f.ok = ok; $f.reg = reg; $f.st = st; $f.st$1 = st$1; $f.st$2 = st$2; $f.stmt = stmt; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileAssignStmtLeft }; } $f.$ptr = $ptr; $f._1 = _1; $f._i = _i; $f._r = _r; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f.ac = ac; $f.acs = acs; $f.context$1 = context$1; $f.ec = ec; $f.i = i; $f.identtype = identtype; $f.islast = islast; $f.lhs = lhs; $f.ok = ok; $f.reg = reg; $f.st = st; $f.st$1 = st$1; $f.st$2 = st$2; $f.stmt = stmt; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileAssignStmtRight = function(context, stmt, reg, acs) {
-		var $ptr, _r, _r$1, _r$2, _r$3, _r$4, _tuple, ac, acs, context, ec, expr, i, i$1, idx, lenexprs, lennames, namesassigned, ok, reg, reginc, reginc$1, regstart, rightreg, stmt, varargopt, varargopt$1, x, x$1, x$2, x$3, x$4, x$5, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _tuple = $f._tuple; ac = $f.ac; acs = $f.acs; context = $f.context; ec = $f.ec; expr = $f.expr; i = $f.i; i$1 = $f.i$1; idx = $f.idx; lenexprs = $f.lenexprs; lennames = $f.lennames; namesassigned = $f.namesassigned; ok = $f.ok; reg = $f.reg; reginc = $f.reginc; reginc$1 = $f.reginc$1; regstart = $f.regstart; rightreg = $f.rightreg; stmt = $f.stmt; varargopt = $f.varargopt; varargopt$1 = $f.varargopt$1; x = $f.x; x$1 = $f.x$1; x$2 = $f.x$2; x$3 = $f.x$3; x$4 = $f.x$4; x$5 = $f.x$5; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileAssignStmtRight = function(context$1, stmt, reg, acs) {
+		var $ptr, _r, _r$1, _r$2, _r$3, _r$4, _tuple, ac, acs, context$1, ec, expr, i, i$1, idx, lenexprs, lennames, namesassigned, ok, reg, reginc, reginc$1, regstart, rightreg, stmt, varargopt, varargopt$1, x, x$1, x$2, x$3, x$4, x$5, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _tuple = $f._tuple; ac = $f.ac; acs = $f.acs; context$1 = $f.context$1; ec = $f.ec; expr = $f.expr; i = $f.i; i$1 = $f.i$1; idx = $f.idx; lenexprs = $f.lenexprs; lennames = $f.lennames; namesassigned = $f.namesassigned; ok = $f.ok; reg = $f.reg; reginc = $f.reginc; reginc$1 = $f.reginc$1; regstart = $f.regstart; rightreg = $f.rightreg; stmt = $f.stmt; varargopt = $f.varargopt; varargopt$1 = $f.varargopt$1; x = $f.x; x$1 = $f.x$1; x$2 = $f.x$2; x$3 = $f.x$3; x$4 = $f.x$4; x$5 = $f.x$5; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		reg = [reg];
 		lennames = stmt.Lhs.$length;
 		lenexprs = stmt.Rhs.$length;
@@ -32507,7 +32981,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* } else if (isVarArgReturnExpr((x = stmt.Rhs, ((namesassigned < 0 || namesassigned >= x.$length) ? ($throwRuntimeError("index out of range"), undefined) : x.$array[x.$offset + namesassigned]))) && (((lenexprs - namesassigned >> 0) - 1 >> 0)) <= 0) { */ case 4:
 				varargopt = (lennames - namesassigned >> 0) - 1 >> 0;
 				regstart = reg[0];
-				_r$2 = compileExpr(context, reg[0], (x$3 = stmt.Rhs, ((namesassigned < 0 || namesassigned >= x$3.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$3.$array[x$3.$offset + namesassigned])), ecnone(varargopt)); /* */ $s = 10; case 10: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+				_r$2 = compileExpr(context$1, reg[0], (x$3 = stmt.Rhs, ((namesassigned < 0 || namesassigned >= x$3.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$3.$array[x$3.$offset + namesassigned])), ecnone(varargopt)); /* */ $s = 10; case 10: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 				reginc = _r$2;
 				reg[0] = reg[0] + (reginc) >> 0;
 				i = namesassigned;
@@ -32526,13 +33000,13 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				expr = (x$4 = stmt.Rhs, ((namesassigned < 0 || namesassigned >= x$4.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$4.$array[x$4.$offset + namesassigned]));
 			}
 			idx = reg[0];
-			_r$3 = compileExpr(context, reg[0], expr, ec); /* */ $s = 11; case 11: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+			_r$3 = compileExpr(context$1, reg[0], expr, ec); /* */ $s = 11; case 11: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 			reginc$1 = _r$3;
 			if (ec.ctype === 3) {
 				_tuple = $assertType(expr, ptrType$40, true);
 				ok = _tuple[1];
 				if (!ok) {
-					context.Code.PropagateKMV(context.RegTop(), (ac.$ptr_valuerk || (ac.$ptr_valuerk = new ptrType$38(function() { return this.$target.valuerk; }, function($v) { this.$target.valuerk = $v; }, ac))), (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), reginc$1);
+					context$1.Code.PropagateKMV(context$1.RegTop(), (ac.$ptr_valuerk || (ac.$ptr_valuerk = new ptrType$38(function() { return this.$target.valuerk; }, function($v) { this.$target.valuerk = $v; }, ac))), (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), reginc$1);
 				} else {
 					ac.valuerk = idx;
 					reg[0] = reg[0] + (reginc$1) >> 0;
@@ -32551,23 +33025,23 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			if (!((i$1 === (lenexprs - 1 >> 0)))) {
 				varargopt$1 = 0;
 			}
-			_r$4 = compileExpr(context, reg[0], (x$5 = stmt.Rhs, ((i$1 < 0 || i$1 >= x$5.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$5.$array[x$5.$offset + i$1])), ecnone(varargopt$1)); /* */ $s = 14; case 14: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+			_r$4 = compileExpr(context$1, reg[0], (x$5 = stmt.Rhs, ((i$1 < 0 || i$1 >= x$5.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$5.$array[x$5.$offset + i$1])), ecnone(varargopt$1)); /* */ $s = 14; case 14: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 			reg[0] = reg[0] + (_r$4) >> 0;
 			i$1 = i$1 + (1) >> 0;
 		/* } */ $s = 12; continue; case 13:
 		$s = -1; return [rightreg, acs];
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileAssignStmtRight }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._tuple = _tuple; $f.ac = ac; $f.acs = acs; $f.context = context; $f.ec = ec; $f.expr = expr; $f.i = i; $f.i$1 = i$1; $f.idx = idx; $f.lenexprs = lenexprs; $f.lennames = lennames; $f.namesassigned = namesassigned; $f.ok = ok; $f.reg = reg; $f.reginc = reginc; $f.reginc$1 = reginc$1; $f.regstart = regstart; $f.rightreg = rightreg; $f.stmt = stmt; $f.varargopt = varargopt; $f.varargopt$1 = varargopt$1; $f.x = x; $f.x$1 = x$1; $f.x$2 = x$2; $f.x$3 = x$3; $f.x$4 = x$4; $f.x$5 = x$5; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileAssignStmtRight }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._tuple = _tuple; $f.ac = ac; $f.acs = acs; $f.context$1 = context$1; $f.ec = ec; $f.expr = expr; $f.i = i; $f.i$1 = i$1; $f.idx = idx; $f.lenexprs = lenexprs; $f.lennames = lennames; $f.namesassigned = namesassigned; $f.ok = ok; $f.reg = reg; $f.reginc = reginc; $f.reginc$1 = reginc$1; $f.regstart = regstart; $f.rightreg = rightreg; $f.stmt = stmt; $f.varargopt = varargopt; $f.varargopt$1 = varargopt$1; $f.x = x; $f.x$1 = x$1; $f.x$2 = x$2; $f.x$3 = x$3; $f.x$4 = x$4; $f.x$5 = x$5; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileAssignStmt = function(context, stmt) {
-		var $ptr, _1, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _tuple, _tuple$1, acs, code, context, ex, i, lennames, opcode, reg, stmt, x, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; acs = $f.acs; code = $f.code; context = $f.context; ex = $f.ex; i = $f.i; lennames = $f.lennames; opcode = $f.opcode; reg = $f.reg; stmt = $f.stmt; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		code = context.Code;
+	compileAssignStmt = function(context$1, stmt) {
+		var $ptr, _1, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _tuple, _tuple$1, acs, code, context$1, ex, i, lennames, opcode, reg, stmt, x, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; acs = $f.acs; code = $f.code; context$1 = $f.context$1; ex = $f.ex; i = $f.i; lennames = $f.lennames; opcode = $f.opcode; reg = $f.reg; stmt = $f.stmt; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		code = context$1.Code;
 		lennames = stmt.Lhs.$length;
-		_r = compileAssignStmtLeft(context, stmt); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		_r = compileAssignStmtLeft(context$1, stmt); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		_tuple = _r;
 		reg = _tuple[0];
 		acs = _tuple[1];
-		_r$1 = compileAssignStmtRight(context, stmt, reg, acs); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+		_r$1 = compileAssignStmtRight(context$1, stmt, reg, acs); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		_tuple$1 = _r$1;
 		reg = _tuple$1[0];
 		acs = _tuple$1[1];
@@ -32585,7 +33059,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					/* */ if (((i < 0 || i >= acs.$length) ? ($throwRuntimeError("index out of range"), undefined) : acs.$array[acs.$offset + i]).needmove) { $s = 11; continue; }
 					/* */ $s = 12; continue;
 					/* if (((i < 0 || i >= acs.$length) ? ($throwRuntimeError("index out of range"), undefined) : acs.$array[acs.$offset + i]).needmove) { */ case 11:
-						_arg = context.FindLocalVar($assertType(ex, ptrType$36).Value);
+						_arg = context$1.FindLocalVar($assertType(ex, ptrType$36).Value);
 						_arg$1 = reg;
 						_r$2 = sline(ex); /* */ $s = 13; case 13: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 						_arg$2 = _r$2;
@@ -32595,7 +33069,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					$s = 10; continue;
 				/* } else if (_1 === (0)) { */ case 7:
 					_arg$3 = reg;
-					_r$3 = context.ConstIndex(new LString($assertType(ex, ptrType$36).Value)); /* */ $s = 15; case 15: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+					_r$3 = context$1.ConstIndex(new LString($assertType(ex, ptrType$36).Value)); /* */ $s = 15; case 15: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 					_arg$4 = _r$3;
 					_r$4 = sline(ex); /* */ $s = 16; case 16: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 					_arg$5 = _r$4;
@@ -32604,7 +33078,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					$s = 10; continue;
 				/* } else if (_1 === (1)) { */ case 8:
 					_arg$6 = reg;
-					_arg$7 = context.Upvalues.RegisterUnique($assertType(ex, ptrType$36).Value);
+					_arg$7 = context$1.Upvalues.RegisterUnique($assertType(ex, ptrType$36).Value);
 					_r$5 = sline(ex); /* */ $s = 18; case 18: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
 					_arg$8 = _r$5;
 					$r = code.AddABC(10, _arg$6, _arg$7, 0, _arg$8); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
@@ -32630,11 +33104,11 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			i = i - (1) >> 0;
 		/* } */ $s = 3; continue; case 4:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileAssignStmt }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.acs = acs; $f.code = code; $f.context = context; $f.ex = ex; $f.i = i; $f.lennames = lennames; $f.opcode = opcode; $f.reg = reg; $f.stmt = stmt; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileAssignStmt }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.acs = acs; $f.code = code; $f.context$1 = context$1; $f.ex = ex; $f.i = i; $f.lennames = lennames; $f.opcode = opcode; $f.reg = reg; $f.stmt = stmt; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileRegAssignment = function(context, names, exprs, reg, nvars, line) {
-		var $ptr, _r, _r$1, _r$2, context, ec, exprs, i, lenexprs, lennames, line, names, namesassigned, nvars, reg, restleft, varargopt, varargopt$1, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; context = $f.context; ec = $f.ec; exprs = $f.exprs; i = $f.i; lenexprs = $f.lenexprs; lennames = $f.lennames; line = $f.line; names = $f.names; namesassigned = $f.namesassigned; nvars = $f.nvars; reg = $f.reg; restleft = $f.restleft; varargopt = $f.varargopt; varargopt$1 = $f.varargopt$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileRegAssignment = function(context$1, names, exprs, reg, nvars, line) {
+		var $ptr, _r, _r$1, _r$2, context$1, ec, exprs, i, lenexprs, lennames, line, names, namesassigned, nvars, reg, restleft, varargopt, varargopt$1, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; context$1 = $f.context$1; ec = $f.ec; exprs = $f.exprs; i = $f.i; lenexprs = $f.lenexprs; lennames = $f.lennames; line = $f.line; names = $f.names; namesassigned = $f.namesassigned; nvars = $f.nvars; reg = $f.reg; restleft = $f.restleft; varargopt = $f.varargopt; varargopt$1 = $f.varargopt$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		lennames = names.$length;
 		lenexprs = exprs.$length;
 		namesassigned = 0;
@@ -32646,14 +33120,14 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* if (isVarArgReturnExpr(((namesassigned < 0 || namesassigned >= exprs.$length) ? ($throwRuntimeError("index out of range"), undefined) : exprs.$array[exprs.$offset + namesassigned])) && (((lenexprs - namesassigned >> 0) - 1 >> 0)) <= 0) { */ case 3:
 				varargopt = nvars - namesassigned >> 0;
 				ecupdate(ec, 4, reg, varargopt - 1 >> 0);
-				_r = compileExpr(context, reg, ((namesassigned < 0 || namesassigned >= exprs.$length) ? ($throwRuntimeError("index out of range"), undefined) : exprs.$array[exprs.$offset + namesassigned]), ec); /* */ $s = 6; case 6: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+				_r = compileExpr(context$1, reg, ((namesassigned < 0 || namesassigned >= exprs.$length) ? ($throwRuntimeError("index out of range"), undefined) : exprs.$array[exprs.$offset + namesassigned]), ec); /* */ $s = 6; case 6: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 				_r;
 				reg = reg + (varargopt) >> 0;
 				namesassigned = lennames;
 				$s = 5; continue;
 			/* } else { */ case 4:
 				ecupdate(ec, 2, reg, 0);
-				_r$1 = compileExpr(context, reg, ((namesassigned < 0 || namesassigned >= exprs.$length) ? ($throwRuntimeError("index out of range"), undefined) : exprs.$array[exprs.$offset + namesassigned]), ec); /* */ $s = 7; case 7: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+				_r$1 = compileExpr(context$1, reg, ((namesassigned < 0 || namesassigned >= exprs.$length) ? ($throwRuntimeError("index out of range"), undefined) : exprs.$array[exprs.$offset + namesassigned]), ec); /* */ $s = 7; case 7: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 				_r$1;
 				reg = reg + (1) >> 0;
 				namesassigned = namesassigned + (1) >> 0;
@@ -32661,7 +33135,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* } */ $s = 1; continue; case 2:
 		if (lennames > namesassigned) {
 			restleft = (lennames - namesassigned >> 0) - 1 >> 0;
-			context.Code.AddABC(4, reg, reg + restleft >> 0, 0, line);
+			context$1.Code.AddABC(4, reg, reg + restleft >> 0, 0, line);
 			reg = reg + (restleft) >> 0;
 		}
 		i = namesassigned;
@@ -32672,17 +33146,17 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				varargopt$1 = 0;
 			}
 			ecupdate(ec, 6, reg, varargopt$1);
-			_r$2 = compileExpr(context, reg, ((i < 0 || i >= exprs.$length) ? ($throwRuntimeError("index out of range"), undefined) : exprs.$array[exprs.$offset + i]), ec); /* */ $s = 10; case 10: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+			_r$2 = compileExpr(context$1, reg, ((i < 0 || i >= exprs.$length) ? ($throwRuntimeError("index out of range"), undefined) : exprs.$array[exprs.$offset + i]), ec); /* */ $s = 10; case 10: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 			reg = reg + (_r$2) >> 0;
 			i = i + (1) >> 0;
 		/* } */ $s = 8; continue; case 9:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileRegAssignment }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f.context = context; $f.ec = ec; $f.exprs = exprs; $f.i = i; $f.lenexprs = lenexprs; $f.lennames = lennames; $f.line = line; $f.names = names; $f.namesassigned = namesassigned; $f.nvars = nvars; $f.reg = reg; $f.restleft = restleft; $f.varargopt = varargopt; $f.varargopt$1 = varargopt$1; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileRegAssignment }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f.context$1 = context$1; $f.ec = ec; $f.exprs = exprs; $f.i = i; $f.lenexprs = lenexprs; $f.lennames = lennames; $f.line = line; $f.names = names; $f.namesassigned = namesassigned; $f.nvars = nvars; $f.reg = reg; $f.restleft = restleft; $f.varargopt = varargopt; $f.varargopt$1 = varargopt$1; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileLocalAssignStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _arg$10, _arg$11, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _r, _r$1, _r$2, _r$3, _ref, _tuple, context, name, ok, reg, stmt, x, x$1, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _ref = $f._ref; _tuple = $f._tuple; context = $f.context; name = $f.name; ok = $f.ok; reg = $f.reg; stmt = $f.stmt; x = $f.x; x$1 = $f.x$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		reg = context.RegTop();
+	compileLocalAssignStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _arg$10, _arg$11, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _r, _r$1, _r$2, _r$3, _ref, _tuple, context$1, name, ok, reg, stmt, x, x$1, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _ref = $f._ref; _tuple = $f._tuple; context$1 = $f.context$1; name = $f.name; ok = $f.ok; reg = $f.reg; stmt = $f.stmt; x = $f.x; x$1 = $f.x$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		reg = context$1.RegTop();
 		/* */ if ((stmt.Names.$length === 1) && (stmt.Exprs.$length === 1)) { $s = 1; continue; }
 		/* */ $s = 2; continue;
 		/* if ((stmt.Names.$length === 1) && (stmt.Exprs.$length === 1)) { */ case 1:
@@ -32691,9 +33165,9 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* */ if (ok) { $s = 3; continue; }
 			/* */ $s = 4; continue;
 			/* if (ok) { */ case 3:
-				_r = context.RegisterLocalVar((x$1 = stmt.Names, (0 >= x$1.$length ? ($throwRuntimeError("index out of range"), undefined) : x$1.$array[x$1.$offset + 0]))); /* */ $s = 5; case 5: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+				_r = context$1.RegisterLocalVar((x$1 = stmt.Names, (0 >= x$1.$length ? ($throwRuntimeError("index out of range"), undefined) : x$1.$array[x$1.$offset + 0]))); /* */ $s = 5; case 5: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 				_r;
-				_arg = context;
+				_arg = context$1;
 				_arg$1 = stmt.Names;
 				_arg$2 = stmt.Exprs;
 				_arg$3 = reg;
@@ -32704,7 +33178,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				$s = -1; return;
 			/* } */ case 4:
 		/* } */ case 2:
-		_arg$6 = context;
+		_arg$6 = context$1;
 		_arg$7 = stmt.Names;
 		_arg$8 = stmt.Exprs;
 		_arg$9 = reg;
@@ -32717,19 +33191,19 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* while (true) { */ case 10:
 			/* if (!(_i < _ref.$length)) { break; } */ if(!(_i < _ref.$length)) { $s = 11; continue; }
 			name = ((_i < 0 || _i >= _ref.$length) ? ($throwRuntimeError("index out of range"), undefined) : _ref.$array[_ref.$offset + _i]);
-			_r$3 = context.RegisterLocalVar(name); /* */ $s = 12; case 12: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+			_r$3 = context$1.RegisterLocalVar(name); /* */ $s = 12; case 12: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 			_r$3;
 			_i++;
 		/* } */ $s = 10; continue; case 11:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileLocalAssignStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._ref = _ref; $f._tuple = _tuple; $f.context = context; $f.name = name; $f.ok = ok; $f.reg = reg; $f.stmt = stmt; $f.x = x; $f.x$1 = x$1; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileLocalAssignStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._ref = _ref; $f._tuple = _tuple; $f.context$1 = context$1; $f.name = name; $f.ok = ok; $f.reg = reg; $f.stmt = stmt; $f.x = x; $f.x$1 = x$1; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileReturnStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _i, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _ref, _ref$1, a, code, context, count, ex, ex$1, expr, i, idx, lastisvaarg, lenexprs, reg, stmt, x, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _ref = $f._ref; _ref$1 = $f._ref$1; a = $f.a; code = $f.code; context = $f.context; count = $f.count; ex = $f.ex; ex$1 = $f.ex$1; expr = $f.expr; i = $f.i; idx = $f.idx; lastisvaarg = $f.lastisvaarg; lenexprs = $f.lenexprs; reg = $f.reg; stmt = $f.stmt; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileReturnStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _i, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _ref, _ref$1, a, code, context$1, count, ex, ex$1, expr, i, idx, lastisvaarg, lenexprs, reg, stmt, x, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _ref = $f._ref; _ref$1 = $f._ref$1; a = $f.a; code = $f.code; context$1 = $f.context$1; count = $f.count; ex = $f.ex; ex$1 = $f.ex$1; expr = $f.expr; i = $f.i; idx = $f.idx; lastisvaarg = $f.lastisvaarg; lenexprs = $f.lenexprs; reg = $f.reg; stmt = $f.stmt; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		lenexprs = stmt.Exprs.$length;
-		code = context.Code;
-		reg = context.RegTop();
+		code = context$1.Code;
+		reg = context$1.RegTop();
 		a = reg;
 		lastisvaarg = false;
 		/* */ if (lenexprs === 1) { $s = 1; continue; }
@@ -32741,7 +33215,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* */ $s = 5; continue;
 			/* if ($assertType(_ref, ptrType$36, true)[1]) { */ case 3:
 				ex = _ref.$val;
-				idx = context.FindLocalVar(ex.Value);
+				idx = context$1.FindLocalVar(ex.Value);
 				/* */ if (idx > -1) { $s = 6; continue; }
 				/* */ $s = 7; continue;
 				/* if (idx > -1) { */ case 6:
@@ -32754,13 +33228,14 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				$s = 5; continue;
 			/* } else if ($assertType(_ref, ptrType$14, true)[1]) { */ case 4:
 				ex$1 = _ref.$val;
-				_r$1 = compileExpr(context, reg, ex$1, ecnone(-2)); /* */ $s = 10; case 10: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+				_r$1 = compileExpr(context$1, reg, ex$1, ecnone(-2)); /* */ $s = 10; case 10: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 				reg = reg + (_r$1) >> 0;
 				code.SetOpCode(code.LastPC(), 32);
 				_arg$2 = a;
 				_r$2 = sline(stmt); /* */ $s = 11; case 11: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 				_arg$3 = _r$2;
 				$r = code.AddABC(33, _arg$2, 0, 0, _arg$3); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				$s = -1; return;
 			/* } */ case 5:
 		/* } */ case 2:
 		_ref$1 = stmt.Exprs;
@@ -32772,12 +33247,12 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* */ if ((i === (lenexprs - 1 >> 0)) && isVarArgReturnExpr(expr)) { $s = 15; continue; }
 			/* */ $s = 16; continue;
 			/* if ((i === (lenexprs - 1 >> 0)) && isVarArgReturnExpr(expr)) { */ case 15:
-				_r$3 = compileExpr(context, reg, expr, ecnone(-2)); /* */ $s = 18; case 18: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+				_r$3 = compileExpr(context$1, reg, expr, ecnone(-2)); /* */ $s = 18; case 18: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 				_r$3;
 				lastisvaarg = true;
 				$s = 17; continue;
 			/* } else { */ case 16:
-				_r$4 = compileExpr(context, reg, expr, ecnone(0)); /* */ $s = 19; case 19: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+				_r$4 = compileExpr(context$1, reg, expr, ecnone(0)); /* */ $s = 19; case 19: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 				reg = reg + (_r$4) >> 0;
 			/* } */ case 17:
 			_i++;
@@ -32790,43 +33265,43 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_arg$5 = count;
 		_r$5 = sline(stmt); /* */ $s = 20; case 20: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
 		_arg$6 = _r$5;
-		$r = context.Code.AddABC(33, _arg$4, _arg$5, 0, _arg$6); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = context$1.Code.AddABC(33, _arg$4, _arg$5, 0, _arg$6); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileReturnStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._ref = _ref; $f._ref$1 = _ref$1; $f.a = a; $f.code = code; $f.context = context; $f.count = count; $f.ex = ex; $f.ex$1 = ex$1; $f.expr = expr; $f.i = i; $f.idx = idx; $f.lastisvaarg = lastisvaarg; $f.lenexprs = lenexprs; $f.reg = reg; $f.stmt = stmt; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileReturnStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._ref = _ref; $f._ref$1 = _ref$1; $f.a = a; $f.code = code; $f.context$1 = context$1; $f.count = count; $f.ex = ex; $f.ex$1 = ex$1; $f.expr = expr; $f.i = i; $f.idx = idx; $f.lastisvaarg = lastisvaarg; $f.lenexprs = lenexprs; $f.reg = reg; $f.stmt = stmt; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileIfStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _r, context, elselabel, endlabel, stmt, thenlabel, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _r = $f._r; context = $f.context; elselabel = $f.elselabel; endlabel = $f.endlabel; stmt = $f.stmt; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		thenlabel = context.NewLabel();
-		elselabel = context.NewLabel();
-		endlabel = context.NewLabel();
-		$r = compileBranchCondition(context, context.RegTop(), stmt.Condition, thenlabel, elselabel, false); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.SetLabelPc(thenlabel, context.Code.LastPC());
-		$r = compileBlock(context, stmt.Then); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+	compileIfStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _r, context$1, elselabel, endlabel, stmt, thenlabel, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _r = $f._r; context$1 = $f.context$1; elselabel = $f.elselabel; endlabel = $f.endlabel; stmt = $f.stmt; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		thenlabel = context$1.NewLabel();
+		elselabel = context$1.NewLabel();
+		endlabel = context$1.NewLabel();
+		$r = compileBranchCondition(context$1, context$1.RegTop(), stmt.Condition, thenlabel, elselabel, false); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		context$1.SetLabelPc(thenlabel, context$1.Code.LastPC());
+		$r = compileBlock(context$1, stmt.Then); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* */ if (stmt.Else.$length > 0) { $s = 3; continue; }
 		/* */ $s = 4; continue;
 		/* if (stmt.Else.$length > 0) { */ case 3:
 			_arg = endlabel;
 			_r = sline(stmt); /* */ $s = 5; case 5: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 			_arg$1 = _r;
-			$r = context.Code.AddASbx(25, 0, _arg, _arg$1); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = context$1.Code.AddASbx(25, 0, _arg, _arg$1); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 4:
-		context.SetLabelPc(elselabel, context.Code.LastPC());
+		context$1.SetLabelPc(elselabel, context$1.Code.LastPC());
 		/* */ if (stmt.Else.$length > 0) { $s = 7; continue; }
 		/* */ $s = 8; continue;
 		/* if (stmt.Else.$length > 0) { */ case 7:
-			$r = compileBlock(context, stmt.Else); /* */ $s = 9; case 9: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			context.SetLabelPc(endlabel, context.Code.LastPC());
+			$r = compileBlock(context$1, stmt.Else); /* */ $s = 9; case 9: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			context$1.SetLabelPc(endlabel, context$1.Code.LastPC());
 		/* } */ case 8:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileIfStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._r = _r; $f.context = context; $f.elselabel = elselabel; $f.endlabel = endlabel; $f.stmt = stmt; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileIfStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._r = _r; $f.context$1 = context$1; $f.elselabel = elselabel; $f.endlabel = endlabel; $f.stmt = stmt; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileBranchCondition = function(context, reg, expr, thenlabel, elselabel, hasnextcond) {
-		var $ptr, _1, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _r, _r$1, _r$2, _ref, a, code, context, elselabel, ex, ex$1, ex$2, ex$3, ex$4, expr, flip, hasnextcond, jumplabel, nextcondlabel, nextcondlabel$1, reg, thenlabel, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _ref = $f._ref; a = $f.a; code = $f.code; context = $f.context; elselabel = $f.elselabel; ex = $f.ex; ex$1 = $f.ex$1; ex$2 = $f.ex$2; ex$3 = $f.ex$3; ex$4 = $f.ex$4; expr = $f.expr; flip = $f.flip; hasnextcond = $f.hasnextcond; jumplabel = $f.jumplabel; nextcondlabel = $f.nextcondlabel; nextcondlabel$1 = $f.nextcondlabel$1; reg = $f.reg; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileBranchCondition = function(context$1, reg, expr, thenlabel, elselabel, hasnextcond) {
+		var $ptr, _1, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _r, _r$1, _r$2, _ref, a, code, context$1, elselabel, ex, ex$1, ex$2, ex$3, ex$4, expr, flip, hasnextcond, jumplabel, nextcondlabel, nextcondlabel$1, reg, thenlabel, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _ref = $f._ref; a = $f.a; code = $f.code; context$1 = $f.context$1; elselabel = $f.elselabel; ex = $f.ex; ex$1 = $f.ex$1; ex$2 = $f.ex$2; ex$3 = $f.ex$3; ex$4 = $f.ex$4; expr = $f.expr; flip = $f.flip; hasnextcond = $f.hasnextcond; jumplabel = $f.jumplabel; nextcondlabel = $f.nextcondlabel; nextcondlabel$1 = $f.nextcondlabel$1; reg = $f.reg; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		a = [a];
 		reg = [reg];
-		code = context.Code;
+		code = context$1.Code;
 		flip = 0;
 		jumplabel = elselabel;
 		if (hasnextcond) {
@@ -32860,7 +33335,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$s = 6; continue;
 		/* } else if ($assertType(_ref, ptrType$45, true)[1]) { */ case 3:
 			ex$2 = _ref.$val;
-			$r = compileBranchCondition(context, reg[0], ex$2.Expr, elselabel, thenlabel, !hasnextcond); /* */ $s = 11; case 11: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileBranchCondition(context$1, reg[0], ex$2.Expr, elselabel, thenlabel, !hasnextcond); /* */ $s = 11; case 11: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return;
 		/* } else if ($assertType(_ref, ptrType$40, true)[1]) { */ case 4:
 			ex$3 = _ref.$val;
@@ -32869,26 +33344,26 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				/* */ if (_1 === ("or")) { $s = 14; continue; }
 				/* */ $s = 15; continue;
 				/* if (_1 === ("and")) { */ case 13:
-					nextcondlabel = context.NewLabel();
-					$r = compileBranchCondition(context, reg[0], ex$3.Lhs, nextcondlabel, elselabel, false); /* */ $s = 16; case 16: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-					context.SetLabelPc(nextcondlabel, context.Code.LastPC());
-					$r = compileBranchCondition(context, reg[0], ex$3.Rhs, thenlabel, elselabel, hasnextcond); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					nextcondlabel = context$1.NewLabel();
+					$r = compileBranchCondition(context$1, reg[0], ex$3.Lhs, nextcondlabel, elselabel, false); /* */ $s = 16; case 16: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					context$1.SetLabelPc(nextcondlabel, context$1.Code.LastPC());
+					$r = compileBranchCondition(context$1, reg[0], ex$3.Rhs, thenlabel, elselabel, hasnextcond); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 					$s = 15; continue;
 				/* } else if (_1 === ("or")) { */ case 14:
-					nextcondlabel$1 = context.NewLabel();
-					$r = compileBranchCondition(context, reg[0], ex$3.Lhs, thenlabel, nextcondlabel$1, true); /* */ $s = 18; case 18: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-					context.SetLabelPc(nextcondlabel$1, context.Code.LastPC());
-					$r = compileBranchCondition(context, reg[0], ex$3.Rhs, thenlabel, elselabel, hasnextcond); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					nextcondlabel$1 = context$1.NewLabel();
+					$r = compileBranchCondition(context$1, reg[0], ex$3.Lhs, thenlabel, nextcondlabel$1, true); /* */ $s = 18; case 18: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					context$1.SetLabelPc(nextcondlabel$1, context$1.Code.LastPC());
+					$r = compileBranchCondition(context$1, reg[0], ex$3.Rhs, thenlabel, elselabel, hasnextcond); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 				/* } */ case 15:
 			case 12:
 			$s = -1; return;
 		/* } else if ($assertType(_ref, ptrType$46, true)[1]) { */ case 5:
 			ex$4 = _ref.$val;
-			$r = compileRelationalOpExprAux(context, reg[0], ex$4, flip, jumplabel); /* */ $s = 20; case 20: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileRelationalOpExprAux(context$1, reg[0], ex$4, flip, jumplabel); /* */ $s = 20; case 20: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return;
 		/* } */ case 6:
 		a[0] = reg[0];
-		$r = compileExprWithMVPropagation(context, expr, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (a.$ptr || (a.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, a)))); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileExprWithMVPropagation(context$1, expr, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (a.$ptr || (a.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, a)))); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		_arg$2 = a[0];
 		_arg$3 = (0 ^ flip) >> 0;
 		_r$1 = sline(expr); /* */ $s = 22; case 22: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
@@ -32899,70 +33374,70 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_arg$6 = _r$2;
 		$r = code.AddASbx(25, 0, _arg$5, _arg$6); /* */ $s = 25; case 25: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileBranchCondition }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._ref = _ref; $f.a = a; $f.code = code; $f.context = context; $f.elselabel = elselabel; $f.ex = ex; $f.ex$1 = ex$1; $f.ex$2 = ex$2; $f.ex$3 = ex$3; $f.ex$4 = ex$4; $f.expr = expr; $f.flip = flip; $f.hasnextcond = hasnextcond; $f.jumplabel = jumplabel; $f.nextcondlabel = nextcondlabel; $f.nextcondlabel$1 = nextcondlabel$1; $f.reg = reg; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileBranchCondition }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._ref = _ref; $f.a = a; $f.code = code; $f.context$1 = context$1; $f.elselabel = elselabel; $f.ex = ex; $f.ex$1 = ex$1; $f.ex$2 = ex$2; $f.ex$3 = ex$3; $f.ex$4 = ex$4; $f.expr = expr; $f.flip = flip; $f.hasnextcond = hasnextcond; $f.jumplabel = jumplabel; $f.nextcondlabel = nextcondlabel; $f.nextcondlabel$1 = nextcondlabel$1; $f.reg = reg; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileWhileStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _r, _r$1, condlabel, context, elselabel, stmt, thenlabel, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _r = $f._r; _r$1 = $f._r$1; condlabel = $f.condlabel; context = $f.context; elselabel = $f.elselabel; stmt = $f.stmt; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		thenlabel = context.NewLabel();
-		elselabel = context.NewLabel();
-		condlabel = context.NewLabel();
-		context.SetLabelPc(condlabel, context.Code.LastPC());
-		$r = compileBranchCondition(context, context.RegTop(), stmt.Condition, thenlabel, elselabel, false); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.SetLabelPc(thenlabel, context.Code.LastPC());
-		$r = context.EnterBlock(elselabel, stmt); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = compileChunk(context, stmt.Stmts); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.CloseUpvalues();
+	compileWhileStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _r, _r$1, condlabel, context$1, elselabel, stmt, thenlabel, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _r = $f._r; _r$1 = $f._r$1; condlabel = $f.condlabel; context$1 = $f.context$1; elselabel = $f.elselabel; stmt = $f.stmt; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		thenlabel = context$1.NewLabel();
+		elselabel = context$1.NewLabel();
+		condlabel = context$1.NewLabel();
+		context$1.SetLabelPc(condlabel, context$1.Code.LastPC());
+		$r = compileBranchCondition(context$1, context$1.RegTop(), stmt.Condition, thenlabel, elselabel, false); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		context$1.SetLabelPc(thenlabel, context$1.Code.LastPC());
+		$r = context$1.EnterBlock(elselabel, stmt); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileChunk(context$1, stmt.Stmts); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		context$1.CloseUpvalues();
 		_arg = condlabel;
 		_r = eline(stmt); /* */ $s = 4; case 4: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		_arg$1 = _r;
-		$r = context.Code.AddASbx(25, 0, _arg, _arg$1); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		_r$1 = context.LeaveBlock(); /* */ $s = 6; case 6: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+		$r = context$1.Code.AddASbx(25, 0, _arg, _arg$1); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		_r$1 = context$1.LeaveBlock(); /* */ $s = 6; case 6: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		_r$1;
-		context.SetLabelPc(elselabel, context.Code.LastPC());
+		context$1.SetLabelPc(elselabel, context$1.Code.LastPC());
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileWhileStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._r = _r; $f._r$1 = _r$1; $f.condlabel = condlabel; $f.context = context; $f.elselabel = elselabel; $f.stmt = stmt; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileWhileStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._r = _r; $f._r$1 = _r$1; $f.condlabel = condlabel; $f.context$1 = context$1; $f.elselabel = elselabel; $f.stmt = stmt; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileRepeatStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _r, _r$1, _r$2, _r$3, context, elselabel, initlabel, label, n, stmt, thenlabel, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; context = $f.context; elselabel = $f.elselabel; initlabel = $f.initlabel; label = $f.label; n = $f.n; stmt = $f.stmt; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		initlabel = context.NewLabel();
-		thenlabel = context.NewLabel();
-		elselabel = context.NewLabel();
-		context.SetLabelPc(initlabel, context.Code.LastPC());
-		context.SetLabelPc(elselabel, context.Code.LastPC());
-		$r = context.EnterBlock(thenlabel, stmt); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = compileChunk(context, stmt.Stmts); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = compileBranchCondition(context, context.RegTop(), stmt.Condition, thenlabel, elselabel, false); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.SetLabelPc(thenlabel, context.Code.LastPC());
-		_r = context.LeaveBlock(); /* */ $s = 4; case 4: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+	compileRepeatStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _r, _r$1, _r$2, _r$3, context$1, elselabel, initlabel, label, n, stmt, thenlabel, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; context$1 = $f.context$1; elselabel = $f.elselabel; initlabel = $f.initlabel; label = $f.label; n = $f.n; stmt = $f.stmt; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		initlabel = context$1.NewLabel();
+		thenlabel = context$1.NewLabel();
+		elselabel = context$1.NewLabel();
+		context$1.SetLabelPc(initlabel, context$1.Code.LastPC());
+		context$1.SetLabelPc(elselabel, context$1.Code.LastPC());
+		$r = context$1.EnterBlock(thenlabel, stmt); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileChunk(context$1, stmt.Stmts); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileBranchCondition(context$1, context$1.RegTop(), stmt.Condition, thenlabel, elselabel, false); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		context$1.SetLabelPc(thenlabel, context$1.Code.LastPC());
+		_r = context$1.LeaveBlock(); /* */ $s = 4; case 4: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		n = _r;
 		/* */ if (n > -1) { $s = 5; continue; }
 		/* */ $s = 6; continue;
 		/* if (n > -1) { */ case 5:
-			label = context.NewLabel();
+			label = context$1.NewLabel();
 			_arg = label;
 			_r$1 = eline(stmt); /* */ $s = 7; case 7: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			_arg$1 = _r$1;
-			$r = context.Code.AddASbx(25, 0, _arg, _arg$1); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			context.SetLabelPc(elselabel, context.Code.LastPC());
+			$r = context$1.Code.AddASbx(25, 0, _arg, _arg$1); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			context$1.SetLabelPc(elselabel, context$1.Code.LastPC());
 			_arg$2 = n;
 			_r$2 = eline(stmt); /* */ $s = 9; case 9: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 			_arg$3 = _r$2;
-			$r = context.Code.AddABC(38, _arg$2, 0, 0, _arg$3); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = context$1.Code.AddABC(38, _arg$2, 0, 0, _arg$3); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			_arg$4 = initlabel;
 			_r$3 = eline(stmt); /* */ $s = 11; case 11: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 			_arg$5 = _r$3;
-			$r = context.Code.AddASbx(25, 0, _arg$4, _arg$5); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			context.SetLabelPc(label, context.Code.LastPC());
+			$r = context$1.Code.AddASbx(25, 0, _arg$4, _arg$5); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			context$1.SetLabelPc(label, context$1.Code.LastPC());
 		/* } */ case 6:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileRepeatStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f.context = context; $f.elselabel = elselabel; $f.initlabel = initlabel; $f.label = label; $f.n = n; $f.stmt = stmt; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileRepeatStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f.context$1 = context$1; $f.elselabel = elselabel; $f.initlabel = initlabel; $f.label = label; $f.n = n; $f.stmt = stmt; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileBreakStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _r, _r$1, _r$2, block, context, label, stmt, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; block = $f.block; context = $f.context; label = $f.label; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		block = context.Block;
+	compileBreakStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _r, _r$1, _r$2, block, context$1, label, stmt, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; block = $f.block; context$1 = $f.context$1; label = $f.label; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		block = context$1.Block;
 		/* while (true) { */ case 1:
 			/* if (!(!(block === ptrType$22.nil))) { break; } */ if(!(!(block === ptrType$22.nil))) { $s = 2; continue; }
 			label = block.BreakLabel;
@@ -32975,47 +33450,47 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					_arg = block.Parent.LocalVars.LastIndex();
 					_r = sline(stmt); /* */ $s = 7; case 7: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 					_arg$1 = _r;
-					$r = context.Code.AddABC(38, _arg, 0, 0, _arg$1); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					$r = context$1.Code.AddABC(38, _arg, 0, 0, _arg$1); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 				/* } */ case 6:
 				_arg$2 = label;
 				_r$1 = sline(stmt); /* */ $s = 9; case 9: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 				_arg$3 = _r$1;
-				$r = context.Code.AddASbx(25, 0, _arg$2, _arg$3); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				$r = context$1.Code.AddASbx(25, 0, _arg$2, _arg$3); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 				$s = -1; return;
 			/* } */ case 4:
 			block = block.Parent;
 		/* } */ $s = 1; continue; case 2:
-		_arg$4 = context;
+		_arg$4 = context$1;
 		_r$2 = sline(stmt); /* */ $s = 11; case 11: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 		_arg$5 = _r$2;
 		$r = raiseCompileError(_arg$4, _arg$5, "no loop to break", new sliceType$7([])); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileBreakStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f.block = block; $f.context = context; $f.label = label; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileBreakStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f.block = block; $f.context$1 = context$1; $f.label = label; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileFuncDefStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _r, _r$1, _r$2, _r$3, _r$4, _tmp, _tmp$1, astmt, context, kreg, reg, stmt, treg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _tmp = $f._tmp; _tmp$1 = $f._tmp$1; astmt = $f.astmt; context = $f.context; kreg = $f.kreg; reg = $f.reg; stmt = $f.stmt; treg = $f.treg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileFuncDefStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _r, _r$1, _r$2, _r$3, _r$4, _tmp, _tmp$1, astmt, context$1, kreg, reg, stmt, treg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _tmp = $f._tmp; _tmp$1 = $f._tmp$1; astmt = $f.astmt; context$1 = $f.context$1; kreg = $f.kreg; reg = $f.reg; stmt = $f.stmt; treg = $f.treg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		reg = [reg];
 		treg = [treg];
 		/* */ if ($interfaceIsEqual(stmt.Name.Func, $ifaceNil)) { $s = 1; continue; }
 		/* */ $s = 2; continue;
 		/* if ($interfaceIsEqual(stmt.Name.Func, $ifaceNil)) { */ case 1:
-			reg[0] = context.RegTop();
+			reg[0] = context$1.RegTop();
 			_tmp = 0;
 			_tmp$1 = 0;
 			treg[0] = _tmp;
 			kreg = _tmp$1;
-			$r = compileExprWithKMVPropagation(context, stmt.Name.Receiver, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (treg.$ptr || (treg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, treg)))); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			_r = loadRk(context, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), stmt.Func, new LString(stmt.Name.Method)); /* */ $s = 5; case 5: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+			$r = compileExprWithKMVPropagation(context$1, stmt.Name.Receiver, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (treg.$ptr || (treg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, treg)))); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			_r = loadRk(context$1, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), stmt.Func, new LString(stmt.Name.Method)); /* */ $s = 5; case 5: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 			kreg = _r;
-			_r$1 = compileExpr(context, reg[0], stmt.Func, ecfuncdef); /* */ $s = 6; case 6: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+			_r$1 = compileExpr(context$1, reg[0], stmt.Func, ecfuncdef); /* */ $s = 6; case 6: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			_r$1;
 			_arg = treg[0];
 			_arg$1 = kreg;
 			_arg$2 = reg[0];
 			_r$2 = sline(stmt.Name.Receiver); /* */ $s = 7; case 7: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 			_arg$3 = _r$2;
-			$r = context.Code.AddABC(11, _arg, _arg$1, _arg$2, _arg$3); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = context$1.Code.AddABC(11, _arg, _arg$1, _arg$2, _arg$3); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 3; continue;
 		/* } else { */ case 2:
 			astmt = new ast.AssignStmt.ptr(new ast.StmtBase.ptr(new ast.Node.ptr(0, 0)), new sliceType$15([stmt.Name.Func]), new sliceType$15([stmt.Func]));
@@ -33023,32 +33498,32 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$r = astmt.StmtBase.Node.SetLine(_r$3); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			_r$4 = eline(stmt.Func); /* */ $s = 11; case 11: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 			$r = astmt.StmtBase.Node.SetLastLine(_r$4); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			$r = compileAssignStmt(context, astmt); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileAssignStmt(context$1, astmt); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 3:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileFuncDefStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._tmp = _tmp; $f._tmp$1 = _tmp$1; $f.astmt = astmt; $f.context = context; $f.kreg = kreg; $f.reg = reg; $f.stmt = stmt; $f.treg = treg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileFuncDefStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._tmp = _tmp; $f._tmp$1 = _tmp$1; $f.astmt = astmt; $f.context$1 = context$1; $f.kreg = kreg; $f.reg = reg; $f.stmt = stmt; $f.treg = treg; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileNumberForStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _r, _r$1, _r$10, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _r$9, bodypc, code, context, ec, endlabel, flpc, reg, rindex, rlimit, rstep, stmt, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _r = $f._r; _r$1 = $f._r$1; _r$10 = $f._r$10; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _r$9 = $f._r$9; bodypc = $f.bodypc; code = $f.code; context = $f.context; ec = $f.ec; endlabel = $f.endlabel; flpc = $f.flpc; reg = $f.reg; rindex = $f.rindex; rlimit = $f.rlimit; rstep = $f.rstep; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		code = context.Code;
-		endlabel = context.NewLabel();
+	compileNumberForStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _r, _r$1, _r$10, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _r$9, bodypc, code, context$1, ec, endlabel, flpc, reg, rindex, rlimit, rstep, stmt, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _r = $f._r; _r$1 = $f._r$1; _r$10 = $f._r$10; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _r$9 = $f._r$9; bodypc = $f.bodypc; code = $f.code; context$1 = $f.context$1; ec = $f.ec; endlabel = $f.endlabel; flpc = $f.flpc; reg = $f.reg; rindex = $f.rindex; rlimit = $f.rlimit; rstep = $f.rstep; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		code = context$1.Code;
+		endlabel = context$1.NewLabel();
 		ec = new expcontext.ptr(0, 0, 0);
-		$r = context.EnterBlock(endlabel, stmt); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		reg = context.RegTop();
-		_r = context.RegisterLocalVar("(for index)"); /* */ $s = 2; case 2: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		$r = context$1.EnterBlock(endlabel, stmt); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		reg = context$1.RegTop();
+		_r = context$1.RegisterLocalVar("(for index)"); /* */ $s = 2; case 2: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		rindex = _r;
 		ecupdate(ec, 2, rindex, 0);
-		_r$1 = compileExpr(context, reg, stmt.Init, ec); /* */ $s = 3; case 3: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+		_r$1 = compileExpr(context$1, reg, stmt.Init, ec); /* */ $s = 3; case 3: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		_r$1;
-		reg = context.RegTop();
-		_r$2 = context.RegisterLocalVar("(for limit)"); /* */ $s = 4; case 4: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+		reg = context$1.RegTop();
+		_r$2 = context$1.RegisterLocalVar("(for limit)"); /* */ $s = 4; case 4: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 		rlimit = _r$2;
 		ecupdate(ec, 2, rlimit, 0);
-		_r$3 = compileExpr(context, reg, stmt.Limit, ec); /* */ $s = 5; case 5: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+		_r$3 = compileExpr(context$1, reg, stmt.Limit, ec); /* */ $s = 5; case 5: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 		_r$3;
-		reg = context.RegTop();
-		_r$4 = context.RegisterLocalVar("(for step)"); /* */ $s = 6; case 6: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+		reg = context$1.RegTop();
+		_r$4 = context$1.RegisterLocalVar("(for step)"); /* */ $s = 6; case 6: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 		rstep = _r$4;
 		/* */ if ($interfaceIsEqual(stmt.Step, $ifaceNil)) { $s = 7; continue; }
 		/* */ $s = 8; continue;
@@ -33058,17 +33533,17 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$r = stmt.Step.SetLine(_r$5); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 8:
 		ecupdate(ec, 2, rstep, 0);
-		_r$6 = compileExpr(context, reg, stmt.Step, ec); /* */ $s = 11; case 11: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
+		_r$6 = compileExpr(context$1, reg, stmt.Step, ec); /* */ $s = 11; case 11: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
 		_r$6;
 		_arg = rindex;
 		_r$7 = sline(stmt); /* */ $s = 12; case 12: if($c) { $c = false; _r$7 = _r$7.$blk(); } if (_r$7 && _r$7.$blk !== undefined) { break s; }
 		_arg$1 = _r$7;
 		$r = code.AddASbx(35, _arg, 0, _arg$1); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		_r$8 = context.RegisterLocalVar(stmt.Name); /* */ $s = 14; case 14: if($c) { $c = false; _r$8 = _r$8.$blk(); } if (_r$8 && _r$8.$blk !== undefined) { break s; }
+		_r$8 = context$1.RegisterLocalVar(stmt.Name); /* */ $s = 14; case 14: if($c) { $c = false; _r$8 = _r$8.$blk(); } if (_r$8 && _r$8.$blk !== undefined) { break s; }
 		_r$8;
 		bodypc = code.LastPC();
-		$r = compileChunk(context, stmt.Stmts); /* */ $s = 15; case 15: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		_r$9 = context.LeaveBlock(); /* */ $s = 16; case 16: if($c) { $c = false; _r$9 = _r$9.$blk(); } if (_r$9 && _r$9.$blk !== undefined) { break s; }
+		$r = compileChunk(context$1, stmt.Stmts); /* */ $s = 15; case 15: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		_r$9 = context$1.LeaveBlock(); /* */ $s = 16; case 16: if($c) { $c = false; _r$9 = _r$9.$blk(); } if (_r$9 && _r$9.$blk !== undefined) { break s; }
 		_r$9;
 		flpc = code.LastPC();
 		_arg$2 = rindex;
@@ -33076,30 +33551,30 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_r$10 = sline(stmt); /* */ $s = 17; case 17: if($c) { $c = false; _r$10 = _r$10.$blk(); } if (_r$10 && _r$10.$blk !== undefined) { break s; }
 		_arg$4 = _r$10;
 		$r = code.AddASbx(34, _arg$2, _arg$3, _arg$4); /* */ $s = 18; case 18: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.SetLabelPc(endlabel, code.LastPC());
+		context$1.SetLabelPc(endlabel, code.LastPC());
 		code.SetSbx(bodypc, flpc - bodypc >> 0);
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileNumberForStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._r = _r; $f._r$1 = _r$1; $f._r$10 = _r$10; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._r$9 = _r$9; $f.bodypc = bodypc; $f.code = code; $f.context = context; $f.ec = ec; $f.endlabel = endlabel; $f.flpc = flpc; $f.reg = reg; $f.rindex = rindex; $f.rlimit = rlimit; $f.rstep = rstep; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileNumberForStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._r = _r; $f._r$1 = _r$1; $f._r$10 = _r$10; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._r$9 = _r$9; $f.bodypc = bodypc; $f.code = code; $f.context$1 = context$1; $f.ec = ec; $f.endlabel = endlabel; $f.flpc = flpc; $f.reg = reg; $f.rindex = rindex; $f.rlimit = rlimit; $f.rstep = rstep; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileGenericForStmt = function(context, stmt) {
-		var $ptr, _arg, _arg$1, _arg$10, _arg$11, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _ref, bodylabel, code, context, endlabel, fllabel, name, nnames, rgen, stmt, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _ref = $f._ref; bodylabel = $f.bodylabel; code = $f.code; context = $f.context; endlabel = $f.endlabel; fllabel = $f.fllabel; name = $f.name; nnames = $f.nnames; rgen = $f.rgen; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		code = context.Code;
-		endlabel = context.NewLabel();
-		bodylabel = context.NewLabel();
-		fllabel = context.NewLabel();
+	compileGenericForStmt = function(context$1, stmt) {
+		var $ptr, _arg, _arg$1, _arg$10, _arg$11, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _ref, bodylabel, code, context$1, endlabel, fllabel, name, nnames, rgen, stmt, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _ref = $f._ref; bodylabel = $f.bodylabel; code = $f.code; context$1 = $f.context$1; endlabel = $f.endlabel; fllabel = $f.fllabel; name = $f.name; nnames = $f.nnames; rgen = $f.rgen; stmt = $f.stmt; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		code = context$1.Code;
+		endlabel = context$1.NewLabel();
+		bodylabel = context$1.NewLabel();
+		fllabel = context$1.NewLabel();
 		nnames = stmt.Names.$length;
-		$r = context.EnterBlock(endlabel, stmt); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		_r = context.RegisterLocalVar("(for generator)"); /* */ $s = 2; case 2: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		$r = context$1.EnterBlock(endlabel, stmt); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		_r = context$1.RegisterLocalVar("(for generator)"); /* */ $s = 2; case 2: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		rgen = _r;
-		_r$1 = context.RegisterLocalVar("(for state)"); /* */ $s = 3; case 3: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+		_r$1 = context$1.RegisterLocalVar("(for state)"); /* */ $s = 3; case 3: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		_r$1;
-		_r$2 = context.RegisterLocalVar("(for control)"); /* */ $s = 4; case 4: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+		_r$2 = context$1.RegisterLocalVar("(for control)"); /* */ $s = 4; case 4: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 		_r$2;
-		_arg = context;
+		_arg = context$1;
 		_arg$1 = stmt.Names;
 		_arg$2 = stmt.Exprs;
-		_arg$3 = context.RegTop() - 3 >> 0;
+		_arg$3 = context$1.RegTop() - 3 >> 0;
 		_r$3 = sline(stmt); /* */ $s = 5; case 5: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 		_arg$4 = _r$3;
 		$r = compileRegAssignment(_arg, _arg$1, _arg$2, _arg$3, 3, _arg$4); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
@@ -33112,15 +33587,15 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* while (true) { */ case 9:
 			/* if (!(_i < _ref.$length)) { break; } */ if(!(_i < _ref.$length)) { $s = 10; continue; }
 			name = ((_i < 0 || _i >= _ref.$length) ? ($throwRuntimeError("index out of range"), undefined) : _ref.$array[_ref.$offset + _i]);
-			_r$5 = context.RegisterLocalVar(name); /* */ $s = 11; case 11: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
+			_r$5 = context$1.RegisterLocalVar(name); /* */ $s = 11; case 11: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
 			_r$5;
 			_i++;
 		/* } */ $s = 9; continue; case 10:
-		context.SetLabelPc(bodylabel, code.LastPC());
-		$r = compileChunk(context, stmt.Stmts); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		_r$6 = context.LeaveBlock(); /* */ $s = 13; case 13: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
+		context$1.SetLabelPc(bodylabel, code.LastPC());
+		$r = compileChunk(context$1, stmt.Stmts); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		_r$6 = context$1.LeaveBlock(); /* */ $s = 13; case 13: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
 		_r$6;
-		context.SetLabelPc(fllabel, code.LastPC());
+		context$1.SetLabelPc(fllabel, code.LastPC());
 		_arg$7 = rgen;
 		_arg$8 = nnames;
 		_r$7 = sline(stmt); /* */ $s = 14; case 14: if($c) { $c = false; _r$7 = _r$7.$blk(); } if (_r$7 && _r$7.$blk !== undefined) { break s; }
@@ -33130,17 +33605,17 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_r$8 = sline(stmt); /* */ $s = 16; case 16: if($c) { $c = false; _r$8 = _r$8.$blk(); } if (_r$8 && _r$8.$blk !== undefined) { break s; }
 		_arg$11 = _r$8;
 		$r = code.AddASbx(25, 0, _arg$10, _arg$11); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.SetLabelPc(endlabel, code.LastPC());
+		context$1.SetLabelPc(endlabel, code.LastPC());
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileGenericForStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._ref = _ref; $f.bodylabel = bodylabel; $f.code = code; $f.context = context; $f.endlabel = endlabel; $f.fllabel = fllabel; $f.name = name; $f.nnames = nnames; $f.rgen = rgen; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileGenericForStmt }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._ref = _ref; $f.bodylabel = bodylabel; $f.code = code; $f.context$1 = context$1; $f.endlabel = endlabel; $f.fllabel = fllabel; $f.name = name; $f.nnames = nnames; $f.rgen = rgen; $f.stmt = stmt; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileExpr = function(context, reg, expr, ec) {
-		var $ptr, _1, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$14, _arg$15, _arg$16, _arg$17, _arg$18, _arg$19, _arg$2, _arg$20, _arg$21, _arg$22, _arg$23, _arg$24, _arg$25, _arg$26, _arg$27, _arg$28, _arg$29, _arg$3, _arg$30, _arg$31, _arg$32, _arg$33, _arg$34, _arg$35, _arg$36, _arg$37, _arg$38, _arg$39, _arg$4, _arg$40, _arg$41, _arg$42, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _r, _r$1, _r$10, _r$11, _r$12, _r$13, _r$14, _r$15, _r$16, _r$17, _r$18, _r$19, _r$2, _r$20, _r$21, _r$22, _r$23, _r$24, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _r$9, _ref, _ref$1, _tuple, _tuple$1, _tuple$2, a, b, b$1, block, c, childcontext, code, context, ec, err, ex, ex$1, ex$10, ex$11, ex$12, ex$13, ex$14, ex$15, ex$16, ex$17, ex$2, ex$3, ex$4, ex$5, ex$6, ex$7, ex$8, ex$9, expr, localidx, num, ok, opcode, protono, reg, sreg, sused, upvalue, upvalueidx, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$14 = $f._arg$14; _arg$15 = $f._arg$15; _arg$16 = $f._arg$16; _arg$17 = $f._arg$17; _arg$18 = $f._arg$18; _arg$19 = $f._arg$19; _arg$2 = $f._arg$2; _arg$20 = $f._arg$20; _arg$21 = $f._arg$21; _arg$22 = $f._arg$22; _arg$23 = $f._arg$23; _arg$24 = $f._arg$24; _arg$25 = $f._arg$25; _arg$26 = $f._arg$26; _arg$27 = $f._arg$27; _arg$28 = $f._arg$28; _arg$29 = $f._arg$29; _arg$3 = $f._arg$3; _arg$30 = $f._arg$30; _arg$31 = $f._arg$31; _arg$32 = $f._arg$32; _arg$33 = $f._arg$33; _arg$34 = $f._arg$34; _arg$35 = $f._arg$35; _arg$36 = $f._arg$36; _arg$37 = $f._arg$37; _arg$38 = $f._arg$38; _arg$39 = $f._arg$39; _arg$4 = $f._arg$4; _arg$40 = $f._arg$40; _arg$41 = $f._arg$41; _arg$42 = $f._arg$42; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$10 = $f._r$10; _r$11 = $f._r$11; _r$12 = $f._r$12; _r$13 = $f._r$13; _r$14 = $f._r$14; _r$15 = $f._r$15; _r$16 = $f._r$16; _r$17 = $f._r$17; _r$18 = $f._r$18; _r$19 = $f._r$19; _r$2 = $f._r$2; _r$20 = $f._r$20; _r$21 = $f._r$21; _r$22 = $f._r$22; _r$23 = $f._r$23; _r$24 = $f._r$24; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _r$9 = $f._r$9; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; _tuple$2 = $f._tuple$2; a = $f.a; b = $f.b; b$1 = $f.b$1; block = $f.block; c = $f.c; childcontext = $f.childcontext; code = $f.code; context = $f.context; ec = $f.ec; err = $f.err; ex = $f.ex; ex$1 = $f.ex$1; ex$10 = $f.ex$10; ex$11 = $f.ex$11; ex$12 = $f.ex$12; ex$13 = $f.ex$13; ex$14 = $f.ex$14; ex$15 = $f.ex$15; ex$16 = $f.ex$16; ex$17 = $f.ex$17; ex$2 = $f.ex$2; ex$3 = $f.ex$3; ex$4 = $f.ex$4; ex$5 = $f.ex$5; ex$6 = $f.ex$6; ex$7 = $f.ex$7; ex$8 = $f.ex$8; ex$9 = $f.ex$9; expr = $f.expr; localidx = $f.localidx; num = $f.num; ok = $f.ok; opcode = $f.opcode; protono = $f.protono; reg = $f.reg; sreg = $f.sreg; sused = $f.sused; upvalue = $f.upvalue; upvalueidx = $f.upvalueidx; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileExpr = function(context$1, reg, expr, ec) {
+		var $ptr, _1, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$14, _arg$15, _arg$16, _arg$17, _arg$18, _arg$19, _arg$2, _arg$20, _arg$21, _arg$22, _arg$23, _arg$24, _arg$25, _arg$26, _arg$27, _arg$28, _arg$29, _arg$3, _arg$30, _arg$31, _arg$32, _arg$33, _arg$34, _arg$35, _arg$36, _arg$37, _arg$38, _arg$39, _arg$4, _arg$40, _arg$41, _arg$42, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _r, _r$1, _r$10, _r$11, _r$12, _r$13, _r$14, _r$15, _r$16, _r$17, _r$18, _r$19, _r$2, _r$20, _r$21, _r$22, _r$23, _r$24, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _r$9, _ref, _ref$1, _tuple, _tuple$1, _tuple$2, a, b, b$1, block, c, childcontext, code, context$1, ec, err, ex, ex$1, ex$10, ex$11, ex$12, ex$13, ex$14, ex$15, ex$16, ex$17, ex$2, ex$3, ex$4, ex$5, ex$6, ex$7, ex$8, ex$9, expr, localidx, num, ok, opcode, protono, reg, sreg, sused, upvalue, upvalueidx, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$14 = $f._arg$14; _arg$15 = $f._arg$15; _arg$16 = $f._arg$16; _arg$17 = $f._arg$17; _arg$18 = $f._arg$18; _arg$19 = $f._arg$19; _arg$2 = $f._arg$2; _arg$20 = $f._arg$20; _arg$21 = $f._arg$21; _arg$22 = $f._arg$22; _arg$23 = $f._arg$23; _arg$24 = $f._arg$24; _arg$25 = $f._arg$25; _arg$26 = $f._arg$26; _arg$27 = $f._arg$27; _arg$28 = $f._arg$28; _arg$29 = $f._arg$29; _arg$3 = $f._arg$3; _arg$30 = $f._arg$30; _arg$31 = $f._arg$31; _arg$32 = $f._arg$32; _arg$33 = $f._arg$33; _arg$34 = $f._arg$34; _arg$35 = $f._arg$35; _arg$36 = $f._arg$36; _arg$37 = $f._arg$37; _arg$38 = $f._arg$38; _arg$39 = $f._arg$39; _arg$4 = $f._arg$4; _arg$40 = $f._arg$40; _arg$41 = $f._arg$41; _arg$42 = $f._arg$42; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$10 = $f._r$10; _r$11 = $f._r$11; _r$12 = $f._r$12; _r$13 = $f._r$13; _r$14 = $f._r$14; _r$15 = $f._r$15; _r$16 = $f._r$16; _r$17 = $f._r$17; _r$18 = $f._r$18; _r$19 = $f._r$19; _r$2 = $f._r$2; _r$20 = $f._r$20; _r$21 = $f._r$21; _r$22 = $f._r$22; _r$23 = $f._r$23; _r$24 = $f._r$24; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _r$9 = $f._r$9; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; _tuple$2 = $f._tuple$2; a = $f.a; b = $f.b; b$1 = $f.b$1; block = $f.block; c = $f.c; childcontext = $f.childcontext; code = $f.code; context$1 = $f.context$1; ec = $f.ec; err = $f.err; ex = $f.ex; ex$1 = $f.ex$1; ex$10 = $f.ex$10; ex$11 = $f.ex$11; ex$12 = $f.ex$12; ex$13 = $f.ex$13; ex$14 = $f.ex$14; ex$15 = $f.ex$15; ex$16 = $f.ex$16; ex$17 = $f.ex$17; ex$2 = $f.ex$2; ex$3 = $f.ex$3; ex$4 = $f.ex$4; ex$5 = $f.ex$5; ex$6 = $f.ex$6; ex$7 = $f.ex$7; ex$8 = $f.ex$8; ex$9 = $f.ex$9; expr = $f.expr; localidx = $f.localidx; num = $f.num; ok = $f.ok; opcode = $f.opcode; protono = $f.protono; reg = $f.reg; sreg = $f.sreg; sused = $f.sused; upvalue = $f.upvalue; upvalueidx = $f.upvalueidx; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		b = [b];
 		c = [c];
 		reg = [reg];
-		code = context.Code;
+		code = context$1.Code;
 		sreg = savereg(ec, reg[0]);
 		sused = 1;
 		if (sreg < reg[0]) {
@@ -33168,7 +33643,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* if ($assertType(_ref, ptrType$39, true)[1]) { */ case 1:
 			ex = _ref.$val;
 			_arg = sreg;
-			_r = context.ConstIndex(new LString(ex.Value)); /* */ $s = 20; case 20: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+			_r = context$1.ConstIndex(new LString(ex.Value)); /* */ $s = 20; case 20: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 			_arg$1 = _r;
 			_r$1 = sline(ex); /* */ $s = 21; case 21: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			_arg$2 = _r$1;
@@ -33184,7 +33659,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				num = math.NaN();
 			}
 			_arg$3 = sreg;
-			_r$3 = context.ConstIndex(new LNumber(num)); /* */ $s = 24; case 24: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+			_r$3 = context$1.ConstIndex(new LNumber(num)); /* */ $s = 24; case 24: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 			_arg$4 = _r$3;
 			_r$4 = sline(ex$1); /* */ $s = 25; case 25: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 			_arg$5 = _r$4;
@@ -33193,7 +33668,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* } else if ($assertType(_ref, ptrType$17, true)[1]) { */ case 3:
 			ex$2 = _ref.$val;
 			_arg$6 = sreg;
-			_r$5 = context.ConstIndex(ex$2.Value); /* */ $s = 27; case 27: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
+			_r$5 = context$1.ConstIndex(ex$2.Value); /* */ $s = 27; case 27: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
 			_arg$7 = _r$5;
 			_r$6 = sline(ex$2); /* */ $s = 28; case 28: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
 			_arg$8 = _r$6;
@@ -33223,14 +33698,14 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$s = -1; return sused;
 		/* } else if ($assertType(_ref, ptrType$36, true)[1]) { */ case 7:
 			ex$6 = _ref.$val;
-				_1 = getIdentRefType(context, context, ex$6);
+				_1 = getIdentRefType(context$1, context$1, ex$6);
 				/* */ if (_1 === (0)) { $s = 37; continue; }
 				/* */ if (_1 === (1)) { $s = 38; continue; }
 				/* */ if (_1 === (2)) { $s = 39; continue; }
 				/* */ $s = 40; continue;
 				/* if (_1 === (0)) { */ case 37:
 					_arg$16 = sreg;
-					_r$10 = context.ConstIndex(new LString(ex$6.Value)); /* */ $s = 41; case 41: if($c) { $c = false; _r$10 = _r$10.$blk(); } if (_r$10 && _r$10.$blk !== undefined) { break s; }
+					_r$10 = context$1.ConstIndex(new LString(ex$6.Value)); /* */ $s = 41; case 41: if($c) { $c = false; _r$10 = _r$10.$blk(); } if (_r$10 && _r$10.$blk !== undefined) { break s; }
 					_arg$17 = _r$10;
 					_r$11 = sline(ex$6); /* */ $s = 42; case 42: if($c) { $c = false; _r$11 = _r$11.$blk(); } if (_r$11 && _r$11.$blk !== undefined) { break s; }
 					_arg$18 = _r$11;
@@ -33238,13 +33713,13 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					$s = 40; continue;
 				/* } else if (_1 === (1)) { */ case 38:
 					_arg$19 = sreg;
-					_arg$20 = context.Upvalues.RegisterUnique(ex$6.Value);
+					_arg$20 = context$1.Upvalues.RegisterUnique(ex$6.Value);
 					_r$12 = sline(ex$6); /* */ $s = 44; case 44: if($c) { $c = false; _r$12 = _r$12.$blk(); } if (_r$12 && _r$12.$blk !== undefined) { break s; }
 					_arg$21 = _r$12;
 					$r = code.AddABC(5, _arg$19, _arg$20, 0, _arg$21); /* */ $s = 45; case 45: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 					$s = 40; continue;
 				/* } else if (_1 === (2)) { */ case 39:
-					b$1 = context.FindLocalVar(ex$6.Value);
+					b$1 = context$1.FindLocalVar(ex$6.Value);
 					_arg$22 = sreg;
 					_arg$23 = b$1;
 					_r$13 = sline(ex$6); /* */ $s = 46; case 46: if($c) { $c = false; _r$13 = _r$13.$blk(); } if (_r$13 && _r$13.$blk !== undefined) { break s; }
@@ -33255,21 +33730,21 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$s = -1; return sused;
 		/* } else if ($assertType(_ref, ptrType$15, true)[1]) { */ case 8:
 			ex$7 = _ref.$val;
-			/* */ if (context.Proto.IsVarArg === 0) { $s = 48; continue; }
+			/* */ if (context$1.Proto.IsVarArg === 0) { $s = 48; continue; }
 			/* */ $s = 49; continue;
-			/* if (context.Proto.IsVarArg === 0) { */ case 48:
-				_arg$25 = context;
+			/* if (context$1.Proto.IsVarArg === 0) { */ case 48:
+				_arg$25 = context$1;
 				_r$14 = sline(ex$7); /* */ $s = 50; case 50: if($c) { $c = false; _r$14 = _r$14.$blk(); } if (_r$14 && _r$14.$blk !== undefined) { break s; }
 				_arg$26 = _r$14;
 				$r = raiseCompileError(_arg$25, _arg$26, "cannot use '...' outside a vararg function", new sliceType$7([])); /* */ $s = 51; case 51: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			/* } */ case 49:
-			context.Proto.IsVarArg = (context.Proto.IsVarArg & (251)) >>> 0;
+			context$1.Proto.IsVarArg = (context$1.Proto.IsVarArg & (251)) >>> 0;
 			_arg$27 = sreg;
 			_arg$28 = 2 + ec.varargopt >> 0;
 			_r$15 = sline(ex$7); /* */ $s = 52; case 52: if($c) { $c = false; _r$15 = _r$15.$blk(); } if (_r$15 && _r$15.$blk !== undefined) { break s; }
 			_arg$29 = _r$15;
 			$r = code.AddABC(40, _arg$27, _arg$28, 0, _arg$29); /* */ $s = 53; case 53: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			if (context.RegTop() > (((sreg + 2 >> 0) + ec.varargopt >> 0)) || ec.varargopt < -1) {
+			if (context$1.RegTop() > (((sreg + 2 >> 0) + ec.varargopt >> 0)) || ec.varargopt < -1) {
 				$s = -1; return 0;
 			}
 			$s = -1; return (((sreg + 1 >> 0) + ec.varargopt >> 0)) - reg[0] >> 0;
@@ -33277,9 +33752,9 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			ex$8 = _ref.$val;
 			a = sreg;
 			b[0] = reg[0];
-			$r = compileExprWithMVPropagation(context, ex$8.Object, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 54; case 54: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileExprWithMVPropagation(context$1, ex$8.Object, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 54; case 54: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			c[0] = reg[0];
-			$r = compileExprWithKMVPropagation(context, ex$8.Key, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (c.$ptr || (c.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, c)))); /* */ $s = 55; case 55: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileExprWithKMVPropagation(context$1, ex$8.Key, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (c.$ptr || (c.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, c)))); /* */ $s = 55; case 55: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			opcode = 7;
 			_tuple$1 = $assertType(ex$8.Key, ptrType$39, true);
 			ok = _tuple$1[1];
@@ -33296,39 +33771,39 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$s = -1; return sused;
 		/* } else if ($assertType(_ref, ptrType$47, true)[1]) { */ case 10:
 			ex$9 = _ref.$val;
-			$r = compileTableExpr(context, reg[0], ex$9, ec); /* */ $s = 58; case 58: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileTableExpr(context$1, reg[0], ex$9, ec); /* */ $s = 58; case 58: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return 1;
 		/* } else if ($assertType(_ref, ptrType$48, true)[1]) { */ case 11:
 			ex$10 = _ref.$val;
-			$r = compileArithmeticOpExpr(context, reg[0], ex$10, ec); /* */ $s = 59; case 59: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileArithmeticOpExpr(context$1, reg[0], ex$10, ec); /* */ $s = 59; case 59: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return sused;
 		/* } else if ($assertType(_ref, ptrType$49, true)[1]) { */ case 12:
 			ex$11 = _ref.$val;
-			$r = compileStringConcatOpExpr(context, reg[0], ex$11, ec); /* */ $s = 60; case 60: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileStringConcatOpExpr(context$1, reg[0], ex$11, ec); /* */ $s = 60; case 60: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return sused;
 		/* } else if ($assertType(_ref, ptrType$50, true)[1] || $assertType(_ref, ptrType$45, true)[1] || $assertType(_ref, ptrType$51, true)[1]) { */ case 13:
 			ex$12 = _ref;
-			$r = compileUnaryOpExpr(context, reg[0], ex$12, ec); /* */ $s = 61; case 61: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileUnaryOpExpr(context$1, reg[0], ex$12, ec); /* */ $s = 61; case 61: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return sused;
 		/* } else if ($assertType(_ref, ptrType$46, true)[1]) { */ case 14:
 			ex$13 = _ref.$val;
-			$r = compileRelationalOpExpr(context, reg[0], ex$13, ec); /* */ $s = 62; case 62: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileRelationalOpExpr(context$1, reg[0], ex$13, ec); /* */ $s = 62; case 62: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return sused;
 		/* } else if ($assertType(_ref, ptrType$40, true)[1]) { */ case 15:
 			ex$14 = _ref.$val;
-			$r = compileLogicalOpExpr(context, reg[0], ex$14, ec); /* */ $s = 63; case 63: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileLogicalOpExpr(context$1, reg[0], ex$14, ec); /* */ $s = 63; case 63: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return sused;
 		/* } else if ($assertType(_ref, ptrType$14, true)[1]) { */ case 16:
 			ex$15 = _ref.$val;
-			_r$17 = compileFuncCallExpr(context, reg[0], ex$15, ec); /* */ $s = 64; case 64: if($c) { $c = false; _r$17 = _r$17.$blk(); } if (_r$17 && _r$17.$blk !== undefined) { break s; }
+			_r$17 = compileFuncCallExpr(context$1, reg[0], ex$15, ec); /* */ $s = 64; case 64: if($c) { $c = false; _r$17 = _r$17.$blk(); } if (_r$17 && _r$17.$blk !== undefined) { break s; }
 			$s = -1; return _r$17;
 		/* } else if ($assertType(_ref, ptrType$41, true)[1]) { */ case 17:
 			ex$16 = _ref.$val;
-			_r$18 = newFuncContext(context.Proto.SourceName, context); /* */ $s = 65; case 65: if($c) { $c = false; _r$18 = _r$18.$blk(); } if (_r$18 && _r$18.$blk !== undefined) { break s; }
+			_r$18 = newFuncContext(context$1.Proto.SourceName, context$1); /* */ $s = 65; case 65: if($c) { $c = false; _r$18 = _r$18.$blk(); } if (_r$18 && _r$18.$blk !== undefined) { break s; }
 			childcontext = _r$18;
 			$r = compileFunctionExpr(childcontext, ex$16, ec); /* */ $s = 66; case 66: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			protono = context.Proto.FunctionPrototypes.$length;
-			context.Proto.FunctionPrototypes = $append(context.Proto.FunctionPrototypes, childcontext.Proto);
+			protono = context$1.Proto.FunctionPrototypes.$length;
+			context$1.Proto.FunctionPrototypes = $append(context$1.Proto.FunctionPrototypes, childcontext.Proto);
 			_arg$35 = sreg;
 			_arg$36 = protono;
 			_r$19 = sline(ex$16); /* */ $s = 67; case 67: if($c) { $c = false; _r$19 = _r$19.$blk(); } if (_r$19 && _r$19.$blk !== undefined) { break s; }
@@ -33339,7 +33814,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* while (true) { */ case 69:
 				/* if (!(_i < _ref$1.$length)) { break; } */ if(!(_i < _ref$1.$length)) { $s = 70; continue; }
 				upvalue = $clone(((_i < 0 || _i >= _ref$1.$length) ? ($throwRuntimeError("index out of range"), undefined) : _ref$1.$array[_ref$1.$offset + _i]), varNamePoolValue);
-				_tuple$2 = context.FindLocalVarAndBlock(upvalue.Name);
+				_tuple$2 = context$1.FindLocalVarAndBlock(upvalue.Name);
 				localidx = _tuple$2[0];
 				block = _tuple$2[1];
 				/* */ if (localidx > -1) { $s = 71; continue; }
@@ -33352,9 +33827,9 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					block.RefUpvalue = true;
 					$s = 73; continue;
 				/* } else { */ case 72:
-					upvalueidx = context.Upvalues.Find(upvalue.Name);
+					upvalueidx = context$1.Upvalues.Find(upvalue.Name);
 					if (upvalueidx < 0) {
-						upvalueidx = context.Upvalues.RegisterUnique(upvalue.Name);
+						upvalueidx = context$1.Upvalues.RegisterUnique(upvalue.Name);
 					}
 					_arg$40 = upvalueidx;
 					_r$21 = sline(ex$16); /* */ $s = 76; case 76: if($c) { $c = false; _r$21 = _r$21.$blk(); } if (_r$21 && _r$21.$blk !== undefined) { break s; }
@@ -33374,12 +33849,12 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* } */ case 19:
 		$panic(new $String("should not reach here"));
 		$s = -1; return sused;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileExpr }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$14 = _arg$14; $f._arg$15 = _arg$15; $f._arg$16 = _arg$16; $f._arg$17 = _arg$17; $f._arg$18 = _arg$18; $f._arg$19 = _arg$19; $f._arg$2 = _arg$2; $f._arg$20 = _arg$20; $f._arg$21 = _arg$21; $f._arg$22 = _arg$22; $f._arg$23 = _arg$23; $f._arg$24 = _arg$24; $f._arg$25 = _arg$25; $f._arg$26 = _arg$26; $f._arg$27 = _arg$27; $f._arg$28 = _arg$28; $f._arg$29 = _arg$29; $f._arg$3 = _arg$3; $f._arg$30 = _arg$30; $f._arg$31 = _arg$31; $f._arg$32 = _arg$32; $f._arg$33 = _arg$33; $f._arg$34 = _arg$34; $f._arg$35 = _arg$35; $f._arg$36 = _arg$36; $f._arg$37 = _arg$37; $f._arg$38 = _arg$38; $f._arg$39 = _arg$39; $f._arg$4 = _arg$4; $f._arg$40 = _arg$40; $f._arg$41 = _arg$41; $f._arg$42 = _arg$42; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$10 = _r$10; $f._r$11 = _r$11; $f._r$12 = _r$12; $f._r$13 = _r$13; $f._r$14 = _r$14; $f._r$15 = _r$15; $f._r$16 = _r$16; $f._r$17 = _r$17; $f._r$18 = _r$18; $f._r$19 = _r$19; $f._r$2 = _r$2; $f._r$20 = _r$20; $f._r$21 = _r$21; $f._r$22 = _r$22; $f._r$23 = _r$23; $f._r$24 = _r$24; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._r$9 = _r$9; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f._tuple$2 = _tuple$2; $f.a = a; $f.b = b; $f.b$1 = b$1; $f.block = block; $f.c = c; $f.childcontext = childcontext; $f.code = code; $f.context = context; $f.ec = ec; $f.err = err; $f.ex = ex; $f.ex$1 = ex$1; $f.ex$10 = ex$10; $f.ex$11 = ex$11; $f.ex$12 = ex$12; $f.ex$13 = ex$13; $f.ex$14 = ex$14; $f.ex$15 = ex$15; $f.ex$16 = ex$16; $f.ex$17 = ex$17; $f.ex$2 = ex$2; $f.ex$3 = ex$3; $f.ex$4 = ex$4; $f.ex$5 = ex$5; $f.ex$6 = ex$6; $f.ex$7 = ex$7; $f.ex$8 = ex$8; $f.ex$9 = ex$9; $f.expr = expr; $f.localidx = localidx; $f.num = num; $f.ok = ok; $f.opcode = opcode; $f.protono = protono; $f.reg = reg; $f.sreg = sreg; $f.sused = sused; $f.upvalue = upvalue; $f.upvalueidx = upvalueidx; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileExpr }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$14 = _arg$14; $f._arg$15 = _arg$15; $f._arg$16 = _arg$16; $f._arg$17 = _arg$17; $f._arg$18 = _arg$18; $f._arg$19 = _arg$19; $f._arg$2 = _arg$2; $f._arg$20 = _arg$20; $f._arg$21 = _arg$21; $f._arg$22 = _arg$22; $f._arg$23 = _arg$23; $f._arg$24 = _arg$24; $f._arg$25 = _arg$25; $f._arg$26 = _arg$26; $f._arg$27 = _arg$27; $f._arg$28 = _arg$28; $f._arg$29 = _arg$29; $f._arg$3 = _arg$3; $f._arg$30 = _arg$30; $f._arg$31 = _arg$31; $f._arg$32 = _arg$32; $f._arg$33 = _arg$33; $f._arg$34 = _arg$34; $f._arg$35 = _arg$35; $f._arg$36 = _arg$36; $f._arg$37 = _arg$37; $f._arg$38 = _arg$38; $f._arg$39 = _arg$39; $f._arg$4 = _arg$4; $f._arg$40 = _arg$40; $f._arg$41 = _arg$41; $f._arg$42 = _arg$42; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$10 = _r$10; $f._r$11 = _r$11; $f._r$12 = _r$12; $f._r$13 = _r$13; $f._r$14 = _r$14; $f._r$15 = _r$15; $f._r$16 = _r$16; $f._r$17 = _r$17; $f._r$18 = _r$18; $f._r$19 = _r$19; $f._r$2 = _r$2; $f._r$20 = _r$20; $f._r$21 = _r$21; $f._r$22 = _r$22; $f._r$23 = _r$23; $f._r$24 = _r$24; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._r$9 = _r$9; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f._tuple$2 = _tuple$2; $f.a = a; $f.b = b; $f.b$1 = b$1; $f.block = block; $f.c = c; $f.childcontext = childcontext; $f.code = code; $f.context$1 = context$1; $f.ec = ec; $f.err = err; $f.ex = ex; $f.ex$1 = ex$1; $f.ex$10 = ex$10; $f.ex$11 = ex$11; $f.ex$12 = ex$12; $f.ex$13 = ex$13; $f.ex$14 = ex$14; $f.ex$15 = ex$15; $f.ex$16 = ex$16; $f.ex$17 = ex$17; $f.ex$2 = ex$2; $f.ex$3 = ex$3; $f.ex$4 = ex$4; $f.ex$5 = ex$5; $f.ex$6 = ex$6; $f.ex$7 = ex$7; $f.ex$8 = ex$8; $f.ex$9 = ex$9; $f.expr = expr; $f.localidx = localidx; $f.num = num; $f.ok = ok; $f.opcode = opcode; $f.protono = protono; $f.reg = reg; $f.sreg = sreg; $f.sused = sused; $f.upvalue = upvalue; $f.upvalueidx = upvalueidx; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileExprWithPropagation = function(context, expr, reg, save, propergator) {
-		var $ptr, _r, _tuple, context, expr, ok, propergator, reg, reginc, save, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _tuple = $f._tuple; context = $f.context; expr = $f.expr; ok = $f.ok; propergator = $f.propergator; reg = $f.reg; reginc = $f.reginc; save = $f.save; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		_r = compileExpr(context, reg.$get(), expr, ecnone(0)); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+	compileExprWithPropagation = function(context$1, expr, reg, save, propergator) {
+		var $ptr, _r, _tuple, context$1, expr, ok, propergator, reg, reginc, save, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _tuple = $f._tuple; context$1 = $f.context$1; expr = $f.expr; ok = $f.ok; propergator = $f.propergator; reg = $f.reg; reginc = $f.reginc; save = $f.save; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		_r = compileExpr(context$1, reg.$get(), expr, ecnone(0)); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		reginc = _r;
 		_tuple = $assertType(expr, ptrType$40, true);
 		ok = _tuple[1];
@@ -33390,24 +33865,24 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			reg.$set(reg.$get() + reginc >> 0);
 			$s = 4; continue;
 		/* } else { */ case 3:
-			$r = propergator(context.RegTop(), save, reg, reginc); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = propergator(context$1.RegTop(), save, reg, reginc); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 4:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileExprWithPropagation }; } $f.$ptr = $ptr; $f._r = _r; $f._tuple = _tuple; $f.context = context; $f.expr = expr; $f.ok = ok; $f.propergator = propergator; $f.reg = reg; $f.reginc = reginc; $f.save = save; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileExprWithPropagation }; } $f.$ptr = $ptr; $f._r = _r; $f._tuple = _tuple; $f.context$1 = context$1; $f.expr = expr; $f.ok = ok; $f.propergator = propergator; $f.reg = reg; $f.reginc = reginc; $f.save = save; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileExprWithKMVPropagation = function(context, expr, reg, save) {
-		var $ptr, context, expr, reg, save, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; context = $f.context; expr = $f.expr; reg = $f.reg; save = $f.save; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		$r = compileExprWithPropagation(context, expr, reg, save, $methodVal(context.Code, "PropagateKMV")); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+	compileExprWithKMVPropagation = function(context$1, expr, reg, save) {
+		var $ptr, context$1, expr, reg, save, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; context$1 = $f.context$1; expr = $f.expr; reg = $f.reg; save = $f.save; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		$r = compileExprWithPropagation(context$1, expr, reg, save, $methodVal(context$1.Code, "PropagateKMV")); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileExprWithKMVPropagation }; } $f.$ptr = $ptr; $f.context = context; $f.expr = expr; $f.reg = reg; $f.save = save; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileExprWithKMVPropagation }; } $f.$ptr = $ptr; $f.context$1 = context$1; $f.expr = expr; $f.reg = reg; $f.save = save; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileExprWithMVPropagation = function(context, expr, reg, save) {
-		var $ptr, context, expr, reg, save, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; context = $f.context; expr = $f.expr; reg = $f.reg; save = $f.save; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		$r = compileExprWithPropagation(context, expr, reg, save, $methodVal(context.Code, "PropagateMV")); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+	compileExprWithMVPropagation = function(context$1, expr, reg, save) {
+		var $ptr, context$1, expr, reg, save, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; context$1 = $f.context$1; expr = $f.expr; reg = $f.reg; save = $f.save; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		$r = compileExprWithPropagation(context$1, expr, reg, save, $methodVal(context$1.Code, "PropagateMV")); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileExprWithMVPropagation }; } $f.$ptr = $ptr; $f.context = context; $f.expr = expr; $f.reg = reg; $f.save = save; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileExprWithMVPropagation }; } $f.$ptr = $ptr; $f.context$1 = context$1; $f.expr = expr; $f.reg = reg; $f.save = save; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	constFold = function(exp) {
 		var $ptr, _1, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _ref, _tuple, _tuple$1, _tuple$2, exp, expr, expr$1, expr$2, lisconst, lvalue, ok, retexpr, risconst, rvalue, value, $s, $r;
@@ -33451,7 +33926,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					/* } else if (_1 === ("^")) { */ case 16:
 						$s = -1; return new constLValueExpr.ptr(new ast.ExprBase.ptr(new ast.Node.ptr(0, 0)), new LNumber(math.Pow(lvalue, rvalue)));
 					/* } else { */ case 17:
-						_r$2 = fmt.Sprintf("unknwon binop: %v", new sliceType$7([new $String(expr.Operator)])); /* */ $s = 19; case 19: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+						_r$2 = fmt.Sprintf("unknown binop: %v", new sliceType$7([new $String(expr.Operator)])); /* */ $s = 19; case 19: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 						$panic(new $String(_r$2));
 					/* } */ case 18:
 				case 10:
@@ -33484,24 +33959,24 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		$s = -1; return exp;
 		/* */ } return; } if ($f === undefined) { $f = { $blk: constFold }; } $f.$ptr = $ptr; $f._1 = _1; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._ref = _ref; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f._tuple$2 = _tuple$2; $f.exp = exp; $f.expr = expr; $f.expr$1 = expr$1; $f.expr$2 = expr$2; $f.lisconst = lisconst; $f.lvalue = lvalue; $f.ok = ok; $f.retexpr = retexpr; $f.risconst = risconst; $f.rvalue = rvalue; $f.value = value; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileFunctionExpr = function(context, funcexpr, ec) {
-		var $ptr, _arg, _i, _i$1, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _ref, _ref$1, _tuple, clv, context, ec, funcexpr, name, ok, slv, sv, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _i = $f._i; _i$1 = $f._i$1; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; clv = $f.clv; context = $f.context; ec = $f.ec; funcexpr = $f.funcexpr; name = $f.name; ok = $f.ok; slv = $f.slv; sv = $f.sv; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileFunctionExpr = function(context$1, funcexpr, ec) {
+		var $ptr, _arg, _i, _i$1, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _ref, _ref$1, _tuple, clv, context$1, ec, funcexpr, name, ok, slv, sv, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _i = $f._i; _i$1 = $f._i$1; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; clv = $f.clv; context$1 = $f.context$1; ec = $f.ec; funcexpr = $f.funcexpr; name = $f.name; ok = $f.ok; slv = $f.slv; sv = $f.sv; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		_r = sline(funcexpr); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
-		context.Proto.LineDefined = _r;
+		context$1.Proto.LineDefined = _r;
 		_r$1 = eline(funcexpr); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
-		context.Proto.LastLineDefined = _r$1;
+		context$1.Proto.LastLineDefined = _r$1;
 		/* */ if (funcexpr.ParList.Names.$length > 200) { $s = 3; continue; }
 		/* */ $s = 4; continue;
 		/* if (funcexpr.ParList.Names.$length > 200) { */ case 3:
-			$r = raiseCompileError(context, context.Proto.LineDefined, "register overflow", new sliceType$7([])); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = raiseCompileError(context$1, context$1.Proto.LineDefined, "register overflow", new sliceType$7([])); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 4:
-		context.Proto.NumParameters = (funcexpr.ParList.Names.$length << 24 >>> 24);
+		context$1.Proto.NumParameters = (funcexpr.ParList.Names.$length << 24 >>> 24);
 		/* */ if (ec.ctype === 5) { $s = 6; continue; }
 		/* */ $s = 7; continue;
 		/* if (ec.ctype === 5) { */ case 6:
-			context.Proto.NumParameters = context.Proto.NumParameters + (1) << 24 >>> 24;
-			_r$2 = context.RegisterLocalVar("self"); /* */ $s = 8; case 8: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+			context$1.Proto.NumParameters = context$1.Proto.NumParameters + (1) << 24 >>> 24;
+			_r$2 = context$1.RegisterLocalVar("self"); /* */ $s = 8; case 8: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 			_r$2;
 		/* } */ case 7:
 		_ref = funcexpr.ParList.Names;
@@ -33509,7 +33984,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* while (true) { */ case 9:
 			/* if (!(_i < _ref.$length)) { break; } */ if(!(_i < _ref.$length)) { $s = 10; continue; }
 			name = ((_i < 0 || _i >= _ref.$length) ? ($throwRuntimeError("index out of range"), undefined) : _ref.$array[_ref.$offset + _i]);
-			_r$3 = context.RegisterLocalVar(name); /* */ $s = 11; case 11: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+			_r$3 = context$1.RegisterLocalVar(name); /* */ $s = 11; case 11: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 			_r$3;
 			_i++;
 		/* } */ $s = 9; continue; case 10:
@@ -33519,26 +33994,26 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* */ if ($pkg.CompatVarArg) { $s = 14; continue; }
 			/* */ $s = 15; continue;
 			/* if ($pkg.CompatVarArg) { */ case 14:
-				context.Proto.IsVarArg = 5;
-				/* */ if (!(context.Parent === ptrType$13.nil)) { $s = 16; continue; }
+				context$1.Proto.IsVarArg = 5;
+				/* */ if (!(context$1.Parent === ptrType$13.nil)) { $s = 16; continue; }
 				/* */ $s = 17; continue;
-				/* if (!(context.Parent === ptrType$13.nil)) { */ case 16:
-					_r$4 = context.RegisterLocalVar("arg"); /* */ $s = 18; case 18: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+				/* if (!(context$1.Parent === ptrType$13.nil)) { */ case 16:
+					_r$4 = context$1.RegisterLocalVar("arg"); /* */ $s = 18; case 18: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 					_r$4;
 				/* } */ case 17:
 			/* } */ case 15:
-			context.Proto.IsVarArg = (context.Proto.IsVarArg | (2)) >>> 0;
+			context$1.Proto.IsVarArg = (context$1.Proto.IsVarArg | (2)) >>> 0;
 		/* } */ case 13:
-		$r = compileChunk(context, funcexpr.Stmts); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileChunk(context$1, funcexpr.Stmts); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		_r$5 = eline(funcexpr); /* */ $s = 20; case 20: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
 		_arg = _r$5;
-		$r = context.Code.AddABC(33, 0, 1, 0, _arg); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.EndScope();
-		context.Proto.Code = context.Code.List();
-		context.Proto.DbgSourcePositions = context.Code.PosList();
-		context.Proto.DbgUpvalues = context.Upvalues.Names();
-		context.Proto.NumUpvalues = (context.Proto.DbgUpvalues.$length << 24 >>> 24);
-		_ref$1 = context.Proto.Constants;
+		$r = context$1.Code.AddABC(33, 0, 1, 0, _arg); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		context$1.EndScope();
+		context$1.Proto.Code = context$1.Code.List();
+		context$1.Proto.DbgSourcePositions = context$1.Code.PosList();
+		context$1.Proto.DbgUpvalues = context$1.Upvalues.Names();
+		context$1.Proto.NumUpvalues = (context$1.Proto.DbgUpvalues.$length << 24 >>> 24);
+		_ref$1 = context$1.Proto.Constants;
 		_i$1 = 0;
 		while (true) {
 			if (!(_i$1 < _ref$1.$length)) { break; }
@@ -33550,18 +34025,18 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			if (ok) {
 				sv = slv;
 			}
-			context.Proto.stringConstants = $append(context.Proto.stringConstants, sv);
+			context$1.Proto.stringConstants = $append(context$1.Proto.stringConstants, sv);
 			_i$1++;
 		}
-		$r = patchCode(context); /* */ $s = 22; case 22: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = patchCode(context$1); /* */ $s = 22; case 22: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileFunctionExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._i = _i; $f._i$1 = _i$1; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f.clv = clv; $f.context = context; $f.ec = ec; $f.funcexpr = funcexpr; $f.name = name; $f.ok = ok; $f.slv = slv; $f.sv = sv; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileFunctionExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._i = _i; $f._i$1 = _i$1; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f.clv = clv; $f.context$1 = context$1; $f.ec = ec; $f.funcexpr = funcexpr; $f.name = name; $f.ok = ok; $f.slv = slv; $f.sv = sv; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileTableExpr = function(context, reg, ex, ec) {
-		var $ptr, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$14, _arg$15, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _q, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _ref, _tuple, arraycount, b, b$1, c, c$1, code, context, ec, ex, field, flush, i, islast, lastvararg, line, num, ok, opcode, reg, regbase, regorg, tablepc, tablereg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$14 = $f._arg$14; _arg$15 = $f._arg$15; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _q = $f._q; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _ref = $f._ref; _tuple = $f._tuple; arraycount = $f.arraycount; b = $f.b; b$1 = $f.b$1; c = $f.c; c$1 = $f.c$1; code = $f.code; context = $f.context; ec = $f.ec; ex = $f.ex; field = $f.field; flush = $f.flush; i = $f.i; islast = $f.islast; lastvararg = $f.lastvararg; line = $f.line; num = $f.num; ok = $f.ok; opcode = $f.opcode; reg = $f.reg; regbase = $f.regbase; regorg = $f.regorg; tablepc = $f.tablepc; tablereg = $f.tablereg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileTableExpr = function(context$1, reg, ex, ec) {
+		var $ptr, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$14, _arg$15, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _q, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _ref, _tuple, arraycount, b, b$1, c, c$1, code, context$1, ec, ex, field, flush, i, islast, lastvararg, line, num, ok, opcode, reg, regbase, regorg, tablepc, tablereg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$14 = $f._arg$14; _arg$15 = $f._arg$15; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _q = $f._q; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _ref = $f._ref; _tuple = $f._tuple; arraycount = $f.arraycount; b = $f.b; b$1 = $f.b$1; c = $f.c; c$1 = $f.c$1; code = $f.code; context$1 = $f.context$1; ec = $f.ec; ex = $f.ex; field = $f.field; flush = $f.flush; i = $f.i; islast = $f.islast; lastvararg = $f.lastvararg; line = $f.line; num = $f.num; ok = $f.ok; opcode = $f.opcode; reg = $f.reg; regbase = $f.regbase; regorg = $f.regorg; tablepc = $f.tablepc; tablereg = $f.tablereg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		reg = [reg];
-		code = context.Code;
+		code = context$1.Code;
 		tablereg = reg[0];
 		reg[0] = reg[0] + (1) >> 0;
 		_arg = tablereg;
@@ -33587,12 +34062,12 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				/* */ if (islast && isVarArgReturnExpr(field.Value)) { $s = 8; continue; }
 				/* */ $s = 9; continue;
 				/* if (islast && isVarArgReturnExpr(field.Value)) { */ case 8:
-					_r$1 = compileExpr(context, reg[0], field.Value, ecnone(-2)); /* */ $s = 11; case 11: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+					_r$1 = compileExpr(context$1, reg[0], field.Value, ecnone(-2)); /* */ $s = 11; case 11: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 					reg[0] = reg[0] + (_r$1) >> 0;
 					lastvararg = true;
 					$s = 10; continue;
 				/* } else { */ case 9:
-					_r$2 = compileExpr(context, reg[0], field.Value, ecnone(0)); /* */ $s = 12; case 12: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+					_r$2 = compileExpr(context$1, reg[0], field.Value, ecnone(0)); /* */ $s = 12; case 12: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 					reg[0] = reg[0] + (_r$2) >> 0;
 					arraycount = arraycount + (1) >> 0;
 				/* } */ case 10:
@@ -33600,9 +34075,9 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* } else { */ case 6:
 				regorg = reg[0];
 				b[0] = reg[0];
-				$r = compileExprWithKMVPropagation(context, field.Key, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				$r = compileExprWithKMVPropagation(context$1, field.Key, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 				c[0] = reg[0];
-				$r = compileExprWithKMVPropagation(context, field.Value, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (c.$ptr || (c.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, c)))); /* */ $s = 14; case 14: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				$r = compileExprWithKMVPropagation(context$1, field.Value, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (c.$ptr || (c.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, c)))); /* */ $s = 14; case 14: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 				opcode = 11;
 				_tuple = $assertType(field.Key, ptrType$39, true);
 				ok = _tuple[1];
@@ -33668,11 +34143,11 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$r = code.AddABC(0, _arg$13, _arg$14, 0, _arg$15); /* */ $s = 28; case 28: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 26:
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileTableExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$14 = _arg$14; $f._arg$15 = _arg$15; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._q = _q; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._ref = _ref; $f._tuple = _tuple; $f.arraycount = arraycount; $f.b = b; $f.b$1 = b$1; $f.c = c; $f.c$1 = c$1; $f.code = code; $f.context = context; $f.ec = ec; $f.ex = ex; $f.field = field; $f.flush = flush; $f.i = i; $f.islast = islast; $f.lastvararg = lastvararg; $f.line = line; $f.num = num; $f.ok = ok; $f.opcode = opcode; $f.reg = reg; $f.regbase = regbase; $f.regorg = regorg; $f.tablepc = tablepc; $f.tablereg = tablereg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileTableExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$14 = _arg$14; $f._arg$15 = _arg$15; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._q = _q; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._ref = _ref; $f._tuple = _tuple; $f.arraycount = arraycount; $f.b = b; $f.b$1 = b$1; $f.c = c; $f.c$1 = c$1; $f.code = code; $f.context$1 = context$1; $f.ec = ec; $f.ex = ex; $f.field = field; $f.flush = flush; $f.i = i; $f.islast = islast; $f.lastvararg = lastvararg; $f.line = line; $f.num = num; $f.ok = ok; $f.opcode = opcode; $f.reg = reg; $f.regbase = regbase; $f.regorg = regorg; $f.tablepc = tablepc; $f.tablereg = tablereg; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileArithmeticOpExpr = function(context, reg, expr, ec) {
-		var $ptr, _1, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _r, _r$1, _r$2, _r$3, _tuple, _tuple$1, a, b, c, context, ec, ex, exp, expr, ok, op, reg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; a = $f.a; b = $f.b; c = $f.c; context = $f.context; ec = $f.ec; ex = $f.ex; exp = $f.exp; expr = $f.expr; ok = $f.ok; op = $f.op; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileArithmeticOpExpr = function(context$1, reg, expr, ec) {
+		var $ptr, _1, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _r, _r$1, _r$2, _r$3, _tuple, _tuple$1, a, b, c, context$1, ec, ex, exp, expr, ok, op, reg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; a = $f.a; b = $f.b; c = $f.c; context$1 = $f.context$1; ec = $f.ec; ex = $f.ex; exp = $f.exp; expr = $f.expr; ok = $f.ok; op = $f.op; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		b = [b];
 		c = [c];
 		reg = [reg];
@@ -33686,7 +34161,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* if (ok) { */ case 2:
 			_r$1 = sline(expr); /* */ $s = 4; case 4: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			$r = exp.SetLine(_r$1); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			_r$2 = compileExpr(context, reg[0], ex, ec); /* */ $s = 6; case 6: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+			_r$2 = compileExpr(context$1, reg[0], ex, ec); /* */ $s = 6; case 6: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 			_r$2;
 			$s = -1; return;
 		/* } */ case 3:
@@ -33694,9 +34169,9 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		expr = _tuple$1[0];
 		a = savereg(ec, reg[0]);
 		b[0] = reg[0];
-		$r = compileExprWithKMVPropagation(context, expr.Lhs, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileExprWithKMVPropagation(context$1, expr.Lhs, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		c[0] = reg[0];
-		$r = compileExprWithKMVPropagation(context, expr.Rhs, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (c.$ptr || (c.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, c)))); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileExprWithKMVPropagation(context$1, expr.Rhs, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (c.$ptr || (c.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, c)))); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		op = 0;
 		_1 = expr.Operator;
 		if (_1 === ("+")) {
@@ -33718,14 +34193,14 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_arg$3 = c[0];
 		_r$3 = sline(expr); /* */ $s = 9; case 9: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 		_arg$4 = _r$3;
-		$r = context.Code.AddABC(_arg, _arg$1, _arg$2, _arg$3, _arg$4); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = context$1.Code.AddABC(_arg, _arg$1, _arg$2, _arg$3, _arg$4); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileArithmeticOpExpr }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.a = a; $f.b = b; $f.c = c; $f.context = context; $f.ec = ec; $f.ex = ex; $f.exp = exp; $f.expr = expr; $f.ok = ok; $f.op = op; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileArithmeticOpExpr }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.a = a; $f.b = b; $f.c = c; $f.context$1 = context$1; $f.ec = ec; $f.ex = ex; $f.exp = exp; $f.expr = expr; $f.ok = ok; $f.op = op; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileStringConcatOpExpr = function(context, reg, expr, ec) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _r, _r$1, _r$2, _tuple, a, basereg, code, context, crange, current, ec, ex, expr, ok, pc, reg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _tuple = $f._tuple; a = $f.a; basereg = $f.basereg; code = $f.code; context = $f.context; crange = $f.crange; current = $f.current; ec = $f.ec; ex = $f.ex; expr = $f.expr; ok = $f.ok; pc = $f.pc; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		code = context.Code;
+	compileStringConcatOpExpr = function(context$1, reg, expr, ec) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _r, _r$1, _r$2, _tuple, a, basereg, code, context$1, crange, current, ec, ex, expr, ok, pc, reg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _tuple = $f._tuple; a = $f.a; basereg = $f.basereg; code = $f.code; context$1 = $f.context$1; crange = $f.crange; current = $f.current; ec = $f.ec; ex = $f.ex; expr = $f.expr; ok = $f.ok; pc = $f.pc; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		code = context$1.Code;
 		crange = 1;
 		current = expr.Rhs;
 		while (true) {
@@ -33742,9 +34217,9 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		}
 		a = savereg(ec, reg);
 		basereg = reg;
-		_r = compileExpr(context, reg, expr.Lhs, ecnone(0)); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		_r = compileExpr(context$1, reg, expr.Lhs, ecnone(0)); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		reg = reg + (_r) >> 0;
-		_r$1 = compileExpr(context, reg, expr.Rhs, ecnone(0)); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+		_r$1 = compileExpr(context$1, reg, expr.Rhs, ecnone(0)); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		reg = reg + (_r$1) >> 0;
 		pc = code.LastPC();
 		while (true) {
@@ -33759,15 +34234,15 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_arg$3 = _r$2;
 		$r = code.AddABC(24, _arg, _arg$1, _arg$2, _arg$3); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileStringConcatOpExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._tuple = _tuple; $f.a = a; $f.basereg = basereg; $f.code = code; $f.context = context; $f.crange = crange; $f.current = current; $f.ec = ec; $f.ex = ex; $f.expr = expr; $f.ok = ok; $f.pc = pc; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileStringConcatOpExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._tuple = _tuple; $f.a = a; $f.basereg = basereg; $f.code = code; $f.context$1 = context$1; $f.crange = crange; $f.current = current; $f.ec = ec; $f.ex = ex; $f.expr = expr; $f.ok = ok; $f.pc = pc; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileUnaryOpExpr = function(context, reg, expr, ec) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _ref, _ref$1, _tuple, _tuple$1, a, b, code, context, ec, ex, ex$1, ex$2, exp, expr, lvexpr, ok, opcode, operandexpr, reg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; a = $f.a; b = $f.b; code = $f.code; context = $f.context; ec = $f.ec; ex = $f.ex; ex$1 = $f.ex$1; ex$2 = $f.ex$2; exp = $f.exp; expr = $f.expr; lvexpr = $f.lvexpr; ok = $f.ok; opcode = $f.opcode; operandexpr = $f.operandexpr; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileUnaryOpExpr = function(context$1, reg, expr, ec) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _ref, _ref$1, _tuple, _tuple$1, a, b, code, context$1, ec, ex, ex$1, ex$2, exp, expr, lvexpr, ok, opcode, operandexpr, reg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; _tuple$1 = $f._tuple$1; a = $f.a; b = $f.b; code = $f.code; context$1 = $f.context$1; ec = $f.ec; ex = $f.ex; ex$1 = $f.ex$1; ex$2 = $f.ex$2; exp = $f.exp; expr = $f.expr; lvexpr = $f.lvexpr; ok = $f.ok; opcode = $f.opcode; operandexpr = $f.operandexpr; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		b = [b];
 		reg = [reg];
 		opcode = 0;
-		code = context.Code;
+		code = context$1.Code;
 		operandexpr = $ifaceNil;
 		_ref = expr;
 		/* */ if ($assertType(_ref, ptrType$50, true)[1]) { $s = 1; continue; }
@@ -33786,7 +34261,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* if (ok) { */ case 6:
 				_r$1 = sline(expr); /* */ $s = 8; case 8: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 				$r = exp.SetLine(_r$1); /* */ $s = 9; case 9: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-				_r$2 = compileExpr(context, reg[0], lvexpr, ec); /* */ $s = 10; case 10: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+				_r$2 = compileExpr(context$1, reg[0], lvexpr, ec); /* */ $s = 10; case 10: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 				_r$2;
 				$s = -1; return;
 			/* } */ case 7:
@@ -33825,7 +34300,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* } */ case 4:
 		a = savereg(ec, reg[0]);
 		b[0] = reg[0];
-		$r = compileExprWithMVPropagation(context, operandexpr, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileExprWithMVPropagation(context$1, operandexpr, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		_arg$4 = opcode;
 		_arg$5 = a;
 		_arg$6 = b[0];
@@ -33833,19 +34308,19 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_arg$7 = _r$5;
 		$r = code.AddABC(_arg$4, _arg$5, _arg$6, 0, _arg$7); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileUnaryOpExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.a = a; $f.b = b; $f.code = code; $f.context = context; $f.ec = ec; $f.ex = ex; $f.ex$1 = ex$1; $f.ex$2 = ex$2; $f.exp = exp; $f.expr = expr; $f.lvexpr = lvexpr; $f.ok = ok; $f.opcode = opcode; $f.operandexpr = operandexpr; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileUnaryOpExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.a = a; $f.b = b; $f.code = code; $f.context$1 = context$1; $f.ec = ec; $f.ex = ex; $f.ex$1 = ex$1; $f.ex$2 = ex$2; $f.exp = exp; $f.expr = expr; $f.lvexpr = lvexpr; $f.ok = ok; $f.opcode = opcode; $f.operandexpr = operandexpr; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileRelationalOpExprAux = function(context, reg, expr, flip, label) {
-		var $ptr, _1, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$14, _arg$15, _arg$16, _arg$17, _arg$18, _arg$19, _arg$2, _arg$20, _arg$21, _arg$22, _arg$23, _arg$24, _arg$25, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, b, c, code, context, expr, flip, label, reg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$14 = $f._arg$14; _arg$15 = $f._arg$15; _arg$16 = $f._arg$16; _arg$17 = $f._arg$17; _arg$18 = $f._arg$18; _arg$19 = $f._arg$19; _arg$2 = $f._arg$2; _arg$20 = $f._arg$20; _arg$21 = $f._arg$21; _arg$22 = $f._arg$22; _arg$23 = $f._arg$23; _arg$24 = $f._arg$24; _arg$25 = $f._arg$25; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; b = $f.b; c = $f.c; code = $f.code; context = $f.context; expr = $f.expr; flip = $f.flip; label = $f.label; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileRelationalOpExprAux = function(context$1, reg, expr, flip, label) {
+		var $ptr, _1, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$14, _arg$15, _arg$16, _arg$17, _arg$18, _arg$19, _arg$2, _arg$20, _arg$21, _arg$22, _arg$23, _arg$24, _arg$25, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, b, c, code, context$1, expr, flip, label, reg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$14 = $f._arg$14; _arg$15 = $f._arg$15; _arg$16 = $f._arg$16; _arg$17 = $f._arg$17; _arg$18 = $f._arg$18; _arg$19 = $f._arg$19; _arg$2 = $f._arg$2; _arg$20 = $f._arg$20; _arg$21 = $f._arg$21; _arg$22 = $f._arg$22; _arg$23 = $f._arg$23; _arg$24 = $f._arg$24; _arg$25 = $f._arg$25; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; b = $f.b; c = $f.c; code = $f.code; context$1 = $f.context$1; expr = $f.expr; flip = $f.flip; label = $f.label; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		b = [b];
 		c = [c];
 		reg = [reg];
-		code = context.Code;
+		code = context$1.Code;
 		b[0] = reg[0];
-		$r = compileExprWithKMVPropagation(context, expr.Lhs, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileExprWithKMVPropagation(context$1, expr.Lhs, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		c[0] = reg[0];
-		$r = compileExprWithKMVPropagation(context, expr.Rhs, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (c.$ptr || (c.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, c)))); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = compileExprWithKMVPropagation(context$1, expr.Rhs, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (c.$ptr || (c.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, c)))); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			_1 = expr.Operator;
 			/* */ if (_1 === ("<")) { $s = 4; continue; }
 			/* */ if (_1 === (">")) { $s = 5; continue; }
@@ -33908,56 +34383,56 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_arg$25 = _r$6;
 		$r = code.AddASbx(25, 0, _arg$24, _arg$25); /* */ $s = 24; case 24: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileRelationalOpExprAux }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$14 = _arg$14; $f._arg$15 = _arg$15; $f._arg$16 = _arg$16; $f._arg$17 = _arg$17; $f._arg$18 = _arg$18; $f._arg$19 = _arg$19; $f._arg$2 = _arg$2; $f._arg$20 = _arg$20; $f._arg$21 = _arg$21; $f._arg$22 = _arg$22; $f._arg$23 = _arg$23; $f._arg$24 = _arg$24; $f._arg$25 = _arg$25; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f.b = b; $f.c = c; $f.code = code; $f.context = context; $f.expr = expr; $f.flip = flip; $f.label = label; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileRelationalOpExprAux }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$14 = _arg$14; $f._arg$15 = _arg$15; $f._arg$16 = _arg$16; $f._arg$17 = _arg$17; $f._arg$18 = _arg$18; $f._arg$19 = _arg$19; $f._arg$2 = _arg$2; $f._arg$20 = _arg$20; $f._arg$21 = _arg$21; $f._arg$22 = _arg$22; $f._arg$23 = _arg$23; $f._arg$24 = _arg$24; $f._arg$25 = _arg$25; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f.b = b; $f.c = c; $f.code = code; $f.context$1 = context$1; $f.expr = expr; $f.flip = flip; $f.label = label; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileRelationalOpExpr = function(context, reg, expr, ec) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _r, _r$1, a, code, context, ec, expr, jumplabel, reg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _r = $f._r; _r$1 = $f._r$1; a = $f.a; code = $f.code; context = $f.context; ec = $f.ec; expr = $f.expr; jumplabel = $f.jumplabel; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileRelationalOpExpr = function(context$1, reg, expr, ec) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _r, _r$1, a, code, context$1, ec, expr, jumplabel, reg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _r = $f._r; _r$1 = $f._r$1; a = $f.a; code = $f.code; context$1 = $f.context$1; ec = $f.ec; expr = $f.expr; jumplabel = $f.jumplabel; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		a = savereg(ec, reg);
-		code = context.Code;
-		jumplabel = context.NewLabel();
-		$r = compileRelationalOpExprAux(context, reg, expr, 1, jumplabel); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		code = context$1.Code;
+		jumplabel = context$1.NewLabel();
+		$r = compileRelationalOpExprAux(context$1, reg, expr, 1, jumplabel); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		_arg = a;
 		_r = sline(expr); /* */ $s = 2; case 2: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		_arg$1 = _r;
 		$r = code.AddABC(3, _arg, 0, 1, _arg$1); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.SetLabelPc(jumplabel, code.LastPC());
+		context$1.SetLabelPc(jumplabel, code.LastPC());
 		_arg$2 = a;
 		_r$1 = sline(expr); /* */ $s = 4; case 4: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		_arg$3 = _r$1;
 		$r = code.AddABC(3, _arg$2, 1, 0, _arg$3); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileRelationalOpExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._r = _r; $f._r$1 = _r$1; $f.a = a; $f.code = code; $f.context = context; $f.ec = ec; $f.expr = expr; $f.jumplabel = jumplabel; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileRelationalOpExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._r = _r; $f._r$1 = _r$1; $f.a = a; $f.code = code; $f.context$1 = context$1; $f.ec = ec; $f.expr = expr; $f.jumplabel = jumplabel; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileLogicalOpExpr = function(context, reg, expr, ec) {
-		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _r, _r$1, a, code, context, ec, endlabel, expr, lastinst, lb, nextcondlabel, reg, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _r = $f._r; _r$1 = $f._r$1; a = $f.a; code = $f.code; context = $f.context; ec = $f.ec; endlabel = $f.endlabel; expr = $f.expr; lastinst = $f.lastinst; lb = $f.lb; nextcondlabel = $f.nextcondlabel; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileLogicalOpExpr = function(context$1, reg, expr, ec) {
+		var $ptr, _arg, _arg$1, _arg$2, _arg$3, _r, _r$1, a, code, context$1, ec, endlabel, expr, lastinst, lb, nextcondlabel, reg, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _r = $f._r; _r$1 = $f._r$1; a = $f.a; code = $f.code; context$1 = $f.context$1; ec = $f.ec; endlabel = $f.endlabel; expr = $f.expr; lastinst = $f.lastinst; lb = $f.lb; nextcondlabel = $f.nextcondlabel; reg = $f.reg; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		a = savereg(ec, reg);
-		code = context.Code;
-		endlabel = context.NewLabel();
-		lb = new lblabels.ptr(context.NewLabel(), context.NewLabel(), endlabel, false);
-		nextcondlabel = context.NewLabel();
+		code = context$1.Code;
+		endlabel = context$1.NewLabel();
+		lb = new lblabels.ptr(context$1.NewLabel(), context$1.NewLabel(), endlabel, false);
+		nextcondlabel = context$1.NewLabel();
 		/* */ if (expr.Operator === "and") { $s = 1; continue; }
 		/* */ $s = 2; continue;
 		/* if (expr.Operator === "and") { */ case 1:
-			$r = compileLogicalOpExprAux(context, reg, expr.Lhs, ec, nextcondlabel, endlabel, false, lb); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			context.SetLabelPc(nextcondlabel, code.LastPC());
-			$r = compileLogicalOpExprAux(context, reg, expr.Rhs, ec, endlabel, endlabel, false, lb); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileLogicalOpExprAux(context$1, reg, expr.Lhs, ec, nextcondlabel, endlabel, false, lb); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			context$1.SetLabelPc(nextcondlabel, code.LastPC());
+			$r = compileLogicalOpExprAux(context$1, reg, expr.Rhs, ec, endlabel, endlabel, false, lb); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 3; continue;
 		/* } else { */ case 2:
-			$r = compileLogicalOpExprAux(context, reg, expr.Lhs, ec, endlabel, nextcondlabel, true, lb); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			context.SetLabelPc(nextcondlabel, code.LastPC());
-			$r = compileLogicalOpExprAux(context, reg, expr.Rhs, ec, endlabel, endlabel, false, lb); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileLogicalOpExprAux(context$1, reg, expr.Lhs, ec, endlabel, nextcondlabel, true, lb); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			context$1.SetLabelPc(nextcondlabel, code.LastPC());
+			$r = compileLogicalOpExprAux(context$1, reg, expr.Rhs, ec, endlabel, endlabel, false, lb); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 3:
 		/* */ if (lb.b) { $s = 8; continue; }
 		/* */ $s = 9; continue;
 		/* if (lb.b) { */ case 8:
-			context.SetLabelPc(lb.f, code.LastPC());
+			context$1.SetLabelPc(lb.f, code.LastPC());
 			_arg = a;
 			_r = sline(expr); /* */ $s = 10; case 10: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 			_arg$1 = _r;
 			$r = code.AddABC(3, _arg, 0, 1, _arg$1); /* */ $s = 11; case 11: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			context.SetLabelPc(lb.t, code.LastPC());
+			context$1.SetLabelPc(lb.t, code.LastPC());
 			_arg$2 = a;
 			_r$1 = sline(expr); /* */ $s = 12; case 12: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			_arg$3 = _r$1;
@@ -33967,14 +34442,14 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		if ((opGetOpCode(lastinst) === 25) && (opGetArgSbx(lastinst) === endlabel)) {
 			code.Pop();
 		}
-		context.SetLabelPc(endlabel, code.LastPC());
+		context$1.SetLabelPc(endlabel, code.LastPC());
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileLogicalOpExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._r = _r; $f._r$1 = _r$1; $f.a = a; $f.code = code; $f.context = context; $f.ec = ec; $f.endlabel = endlabel; $f.expr = expr; $f.lastinst = lastinst; $f.lb = lb; $f.nextcondlabel = nextcondlabel; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileLogicalOpExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._r = _r; $f._r$1 = _r$1; $f.a = a; $f.code = code; $f.context$1 = context$1; $f.ec = ec; $f.endlabel = endlabel; $f.expr = expr; $f.lastinst = lastinst; $f.lb = lb; $f.nextcondlabel = nextcondlabel; $f.reg = reg; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileLogicalOpExprAux = function(context, reg, expr, ec, thenlabel, elselabel, hasnextcond, lb) {
-		var $ptr, _1, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$14, _arg$15, _arg$16, _arg$17, _arg$18, _arg$19, _arg$2, _arg$20, _arg$21, _arg$22, _arg$23, _arg$24, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _r, _r$1, _r$10, _r$11, _r$12, _r$13, _r$14, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _r$9, _ref, a, code, context, ec, elselabel, ex, ex$1, ex$2, ex$3, ex$4, ex$5, expr, flip, hasnextcond, jumplabel, lb, nextcondlabel, nextcondlabel$1, reg, sreg, thenlabel, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$14 = $f._arg$14; _arg$15 = $f._arg$15; _arg$16 = $f._arg$16; _arg$17 = $f._arg$17; _arg$18 = $f._arg$18; _arg$19 = $f._arg$19; _arg$2 = $f._arg$2; _arg$20 = $f._arg$20; _arg$21 = $f._arg$21; _arg$22 = $f._arg$22; _arg$23 = $f._arg$23; _arg$24 = $f._arg$24; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _r = $f._r; _r$1 = $f._r$1; _r$10 = $f._r$10; _r$11 = $f._r$11; _r$12 = $f._r$12; _r$13 = $f._r$13; _r$14 = $f._r$14; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _r$9 = $f._r$9; _ref = $f._ref; a = $f.a; code = $f.code; context = $f.context; ec = $f.ec; elselabel = $f.elselabel; ex = $f.ex; ex$1 = $f.ex$1; ex$2 = $f.ex$2; ex$3 = $f.ex$3; ex$4 = $f.ex$4; ex$5 = $f.ex$5; expr = $f.expr; flip = $f.flip; hasnextcond = $f.hasnextcond; jumplabel = $f.jumplabel; lb = $f.lb; nextcondlabel = $f.nextcondlabel; nextcondlabel$1 = $f.nextcondlabel$1; reg = $f.reg; sreg = $f.sreg; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		code = context.Code;
+	compileLogicalOpExprAux = function(context$1, reg, expr, ec, thenlabel, elselabel, hasnextcond, lb) {
+		var $ptr, _1, _arg, _arg$1, _arg$10, _arg$11, _arg$12, _arg$13, _arg$14, _arg$15, _arg$16, _arg$17, _arg$18, _arg$19, _arg$2, _arg$20, _arg$21, _arg$22, _arg$23, _arg$24, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _r, _r$1, _r$10, _r$11, _r$12, _r$13, _r$14, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _r$9, _ref, a, code, context$1, ec, elselabel, ex, ex$1, ex$2, ex$3, ex$4, ex$5, expr, flip, hasnextcond, jumplabel, lb, nextcondlabel, nextcondlabel$1, reg, sreg, thenlabel, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$11 = $f._arg$11; _arg$12 = $f._arg$12; _arg$13 = $f._arg$13; _arg$14 = $f._arg$14; _arg$15 = $f._arg$15; _arg$16 = $f._arg$16; _arg$17 = $f._arg$17; _arg$18 = $f._arg$18; _arg$19 = $f._arg$19; _arg$2 = $f._arg$2; _arg$20 = $f._arg$20; _arg$21 = $f._arg$21; _arg$22 = $f._arg$22; _arg$23 = $f._arg$23; _arg$24 = $f._arg$24; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _r = $f._r; _r$1 = $f._r$1; _r$10 = $f._r$10; _r$11 = $f._r$11; _r$12 = $f._r$12; _r$13 = $f._r$13; _r$14 = $f._r$14; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _r$9 = $f._r$9; _ref = $f._ref; a = $f.a; code = $f.code; context$1 = $f.context$1; ec = $f.ec; elselabel = $f.elselabel; ex = $f.ex; ex$1 = $f.ex$1; ex$2 = $f.ex$2; ex$3 = $f.ex$3; ex$4 = $f.ex$4; ex$5 = $f.ex$5; expr = $f.expr; flip = $f.flip; hasnextcond = $f.hasnextcond; jumplabel = $f.jumplabel; lb = $f.lb; nextcondlabel = $f.nextcondlabel; nextcondlabel$1 = $f.nextcondlabel$1; reg = $f.reg; sreg = $f.sreg; thenlabel = $f.thenlabel; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		code = context$1.Code;
 		flip = 0;
 		jumplabel = elselabel;
 		if (hasnextcond) {
@@ -34012,7 +34487,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* */ if (elselabel === lb.e) { $s = 15; continue; }
 			/* */ $s = 16; continue;
 			/* if (elselabel === lb.e) { */ case 15:
-				_r$2 = compileExpr(context, reg, expr, ec); /* */ $s = 18; case 18: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+				_r$2 = compileExpr(context$1, reg, expr, ec); /* */ $s = 18; case 18: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 				_r$2;
 				_arg$4 = lb.e;
 				_r$3 = sline(expr); /* */ $s = 19; case 19: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
@@ -34049,7 +34524,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* */ if (thenlabel === lb.e) { $s = 30; continue; }
 			/* */ $s = 31; continue;
 			/* if (thenlabel === lb.e) { */ case 30:
-				_r$7 = compileExpr(context, reg, expr, ec); /* */ $s = 33; case 33: if($c) { $c = false; _r$7 = _r$7.$blk(); } if (_r$7 && _r$7.$blk !== undefined) { break s; }
+				_r$7 = compileExpr(context$1, reg, expr, ec); /* */ $s = 33; case 33: if($c) { $c = false; _r$7 = _r$7.$blk(); } if (_r$7 && _r$7.$blk !== undefined) { break s; }
 				_r$7;
 				_arg$12 = lb.e;
 				_r$8 = sline(expr); /* */ $s = 34; case 34: if($c) { $c = false; _r$8 = _r$8.$blk(); } if (_r$8 && _r$8.$blk !== undefined) { break s; }
@@ -34070,16 +34545,16 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				/* */ if (_1 === ("or")) { $s = 40; continue; }
 				/* */ $s = 41; continue;
 				/* if (_1 === ("and")) { */ case 39:
-					nextcondlabel = context.NewLabel();
-					$r = compileLogicalOpExprAux(context, reg, ex$4.Lhs, ec, nextcondlabel, elselabel, false, lb); /* */ $s = 42; case 42: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-					context.SetLabelPc(nextcondlabel, context.Code.LastPC());
-					$r = compileLogicalOpExprAux(context, reg, ex$4.Rhs, ec, thenlabel, elselabel, hasnextcond, lb); /* */ $s = 43; case 43: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					nextcondlabel = context$1.NewLabel();
+					$r = compileLogicalOpExprAux(context$1, reg, ex$4.Lhs, ec, nextcondlabel, elselabel, false, lb); /* */ $s = 42; case 42: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					context$1.SetLabelPc(nextcondlabel, context$1.Code.LastPC());
+					$r = compileLogicalOpExprAux(context$1, reg, ex$4.Rhs, ec, thenlabel, elselabel, hasnextcond, lb); /* */ $s = 43; case 43: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 					$s = 41; continue;
 				/* } else if (_1 === ("or")) { */ case 40:
-					nextcondlabel$1 = context.NewLabel();
-					$r = compileLogicalOpExprAux(context, reg, ex$4.Lhs, ec, thenlabel, nextcondlabel$1, true, lb); /* */ $s = 44; case 44: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-					context.SetLabelPc(nextcondlabel$1, context.Code.LastPC());
-					$r = compileLogicalOpExprAux(context, reg, ex$4.Rhs, ec, thenlabel, elselabel, hasnextcond, lb); /* */ $s = 45; case 45: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					nextcondlabel$1 = context$1.NewLabel();
+					$r = compileLogicalOpExprAux(context$1, reg, ex$4.Lhs, ec, thenlabel, nextcondlabel$1, true, lb); /* */ $s = 44; case 44: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					context$1.SetLabelPc(nextcondlabel$1, context$1.Code.LastPC());
+					$r = compileLogicalOpExprAux(context$1, reg, ex$4.Rhs, ec, thenlabel, elselabel, hasnextcond, lb); /* */ $s = 45; case 45: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 				/* } */ case 41:
 			case 38:
 			$s = -1; return;
@@ -34096,19 +34571,19 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				jumplabel = lb.f;
 				lb.b = true;
 			}
-			$r = compileRelationalOpExprAux(context, reg, ex$5, flip, jumplabel); /* */ $s = 46; case 46: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = compileRelationalOpExprAux(context$1, reg, ex$5, flip, jumplabel); /* */ $s = 46; case 46: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return;
 		/* } */ case 7:
 		/* */ if (!hasnextcond && (thenlabel === elselabel)) { $s = 47; continue; }
 		/* */ $s = 48; continue;
 		/* if (!hasnextcond && (thenlabel === elselabel)) { */ case 47:
-			_r$10 = compileExpr(context, reg, expr, ec); /* */ $s = 50; case 50: if($c) { $c = false; _r$10 = _r$10.$blk(); } if (_r$10 && _r$10.$blk !== undefined) { break s; }
+			_r$10 = compileExpr(context$1, reg, expr, ec); /* */ $s = 50; case 50: if($c) { $c = false; _r$10 = _r$10.$blk(); } if (_r$10 && _r$10.$blk !== undefined) { break s; }
 			reg = reg + (_r$10) >> 0;
 			$s = 49; continue;
 		/* } else { */ case 48:
 			a = reg;
 			sreg = savereg(ec, a);
-			_r$11 = compileExpr(context, reg, expr, ecnone(0)); /* */ $s = 51; case 51: if($c) { $c = false; _r$11 = _r$11.$blk(); } if (_r$11 && _r$11.$blk !== undefined) { break s; }
+			_r$11 = compileExpr(context$1, reg, expr, ecnone(0)); /* */ $s = 51; case 51: if($c) { $c = false; _r$11 = _r$11.$blk(); } if (_r$11 && _r$11.$blk !== undefined) { break s; }
 			reg = reg + (_r$11) >> 0;
 			/* */ if (sreg === a) { $s = 52; continue; }
 			/* */ $s = 53; continue;
@@ -34133,15 +34608,15 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_arg$24 = _r$14;
 		$r = code.AddASbx(25, 0, _arg$23, _arg$24); /* */ $s = 60; case 60: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileLogicalOpExprAux }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$14 = _arg$14; $f._arg$15 = _arg$15; $f._arg$16 = _arg$16; $f._arg$17 = _arg$17; $f._arg$18 = _arg$18; $f._arg$19 = _arg$19; $f._arg$2 = _arg$2; $f._arg$20 = _arg$20; $f._arg$21 = _arg$21; $f._arg$22 = _arg$22; $f._arg$23 = _arg$23; $f._arg$24 = _arg$24; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._r = _r; $f._r$1 = _r$1; $f._r$10 = _r$10; $f._r$11 = _r$11; $f._r$12 = _r$12; $f._r$13 = _r$13; $f._r$14 = _r$14; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._r$9 = _r$9; $f._ref = _ref; $f.a = a; $f.code = code; $f.context = context; $f.ec = ec; $f.elselabel = elselabel; $f.ex = ex; $f.ex$1 = ex$1; $f.ex$2 = ex$2; $f.ex$3 = ex$3; $f.ex$4 = ex$4; $f.ex$5 = ex$5; $f.expr = expr; $f.flip = flip; $f.hasnextcond = hasnextcond; $f.jumplabel = jumplabel; $f.lb = lb; $f.nextcondlabel = nextcondlabel; $f.nextcondlabel$1 = nextcondlabel$1; $f.reg = reg; $f.sreg = sreg; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileLogicalOpExprAux }; } $f.$ptr = $ptr; $f._1 = _1; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$11 = _arg$11; $f._arg$12 = _arg$12; $f._arg$13 = _arg$13; $f._arg$14 = _arg$14; $f._arg$15 = _arg$15; $f._arg$16 = _arg$16; $f._arg$17 = _arg$17; $f._arg$18 = _arg$18; $f._arg$19 = _arg$19; $f._arg$2 = _arg$2; $f._arg$20 = _arg$20; $f._arg$21 = _arg$21; $f._arg$22 = _arg$22; $f._arg$23 = _arg$23; $f._arg$24 = _arg$24; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._r = _r; $f._r$1 = _r$1; $f._r$10 = _r$10; $f._r$11 = _r$11; $f._r$12 = _r$12; $f._r$13 = _r$13; $f._r$14 = _r$14; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._r$7 = _r$7; $f._r$8 = _r$8; $f._r$9 = _r$9; $f._ref = _ref; $f.a = a; $f.code = code; $f.context$1 = context$1; $f.ec = ec; $f.elselabel = elselabel; $f.ex = ex; $f.ex$1 = ex$1; $f.ex$2 = ex$2; $f.ex$3 = ex$3; $f.ex$4 = ex$4; $f.ex$5 = ex$5; $f.expr = expr; $f.flip = flip; $f.hasnextcond = hasnextcond; $f.jumplabel = jumplabel; $f.lb = lb; $f.nextcondlabel = nextcondlabel; $f.nextcondlabel$1 = nextcondlabel$1; $f.reg = reg; $f.sreg = sreg; $f.thenlabel = thenlabel; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	compileFuncCallExpr = function(context, reg, expr, ec) {
-		var $ptr, _arg, _arg$1, _arg$10, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _ref, ar, argc, b, b$1, c, context, ec, expr, funcreg, i, islastvararg, name, reg, reg2, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _ref = $f._ref; ar = $f.ar; argc = $f.argc; b = $f.b; b$1 = $f.b$1; c = $f.c; context = $f.context; ec = $f.ec; expr = $f.expr; funcreg = $f.funcreg; i = $f.i; islastvararg = $f.islastvararg; name = $f.name; reg = $f.reg; reg2 = $f.reg2; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	compileFuncCallExpr = function(context$1, reg, expr, ec) {
+		var $ptr, _arg, _arg$1, _arg$10, _arg$2, _arg$3, _arg$4, _arg$5, _arg$6, _arg$7, _arg$8, _arg$9, _i, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _ref, ar, argc, b, b$1, c, context$1, ec, expr, funcreg, i, islastvararg, name, reg, reg2, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$10 = $f._arg$10; _arg$2 = $f._arg$2; _arg$3 = $f._arg$3; _arg$4 = $f._arg$4; _arg$5 = $f._arg$5; _arg$6 = $f._arg$6; _arg$7 = $f._arg$7; _arg$8 = $f._arg$8; _arg$9 = $f._arg$9; _i = $f._i; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _ref = $f._ref; ar = $f.ar; argc = $f.argc; b = $f.b; b$1 = $f.b$1; c = $f.c; context$1 = $f.context$1; ec = $f.ec; expr = $f.expr; funcreg = $f.funcreg; i = $f.i; islastvararg = $f.islastvararg; name = $f.name; reg = $f.reg; reg2 = $f.reg2; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		b = [b];
 		reg = [reg];
 		funcreg = reg[0];
-		if ((ec.ctype === 2) && (ec.reg === (((context.Proto.NumParameters >> 0) - 1 >> 0)))) {
+		if ((ec.ctype === 2) && (ec.reg === (((context$1.Proto.NumParameters >> 0) - 1 >> 0)))) {
 			funcreg = ec.reg;
 			reg[0] = ec.reg;
 		}
@@ -34151,21 +34626,21 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* */ if (!($interfaceIsEqual(expr.Func, $ifaceNil))) { $s = 1; continue; }
 		/* */ $s = 2; continue;
 		/* if (!($interfaceIsEqual(expr.Func, $ifaceNil))) { */ case 1:
-			_r = compileExpr(context, reg[0], expr.Func, ecnone(0)); /* */ $s = 4; case 4: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+			_r = compileExpr(context$1, reg[0], expr.Func, ecnone(0)); /* */ $s = 4; case 4: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 			reg[0] = reg[0] + (_r) >> 0;
-			name = getExprName(context, expr.Func);
+			name = getExprName(context$1, expr.Func);
 			$s = 3; continue;
 		/* } else { */ case 2:
 			b[0] = reg[0];
-			$r = compileExprWithMVPropagation(context, expr.Receiver, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			_r$1 = loadRk(context, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), expr, new LString(expr.Method)); /* */ $s = 6; case 6: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+			$r = compileExprWithMVPropagation(context$1, expr.Receiver, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), (b.$ptr || (b.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, b)))); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			_r$1 = loadRk(context$1, (reg.$ptr || (reg.$ptr = new ptrType$38(function() { return this.$target[0]; }, function($v) { this.$target[0] = $v; }, reg))), expr, new LString(expr.Method)); /* */ $s = 6; case 6: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			c = _r$1;
 			_arg = funcreg;
 			_arg$1 = b[0];
 			_arg$2 = c;
 			_r$2 = sline(expr); /* */ $s = 7; case 7: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 			_arg$3 = _r$2;
-			$r = context.Code.AddABC(14, _arg, _arg$1, _arg$2, _arg$3); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = context$1.Code.AddABC(14, _arg, _arg$1, _arg$2, _arg$3); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			reg[0] = b[0] + 1 >> 0;
 			reg2 = funcreg + 2 >> 0;
 			if (reg2 > reg[0]) {
@@ -34184,11 +34659,11 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			/* */ if (islastvararg) { $s = 11; continue; }
 			/* */ $s = 12; continue;
 			/* if (islastvararg) { */ case 11:
-				_r$3 = compileExpr(context, reg[0], ar, ecnone(-2)); /* */ $s = 14; case 14: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+				_r$3 = compileExpr(context$1, reg[0], ar, ecnone(-2)); /* */ $s = 14; case 14: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 				_r$3;
 				$s = 13; continue;
 			/* } else { */ case 12:
-				_r$4 = compileExpr(context, reg[0], ar, ecnone(0)); /* */ $s = 15; case 15: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+				_r$4 = compileExpr(context$1, reg[0], ar, ecnone(0)); /* */ $s = 15; case 15: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 				reg[0] = reg[0] + (_r$4) >> 0;
 			/* } */ case 13:
 			_i++;
@@ -34202,8 +34677,8 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_arg$6 = ec.varargopt + 2 >> 0;
 		_r$5 = sline(expr); /* */ $s = 16; case 16: if($c) { $c = false; _r$5 = _r$5.$blk(); } if (_r$5 && _r$5.$blk !== undefined) { break s; }
 		_arg$7 = _r$5;
-		$r = context.Code.AddABC(31, _arg$4, _arg$5, _arg$6, _arg$7); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		context.Proto.DbgCalls = $append(context.Proto.DbgCalls, new DbgCall.ptr(name, context.Code.LastPC()));
+		$r = context$1.Code.AddABC(31, _arg$4, _arg$5, _arg$6, _arg$7); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		context$1.Proto.DbgCalls = $append(context$1.Proto.DbgCalls, new DbgCall.ptr(name, context$1.Code.LastPC()));
 		/* */ if ((ec.varargopt === 0) && (ec.ctype === 2) && !((funcreg === ec.reg))) { $s = 18; continue; }
 		/* */ $s = 19; continue;
 		/* if ((ec.varargopt === 0) && (ec.ctype === 2) && !((funcreg === ec.reg))) { */ case 18:
@@ -34211,19 +34686,19 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			_arg$9 = funcreg;
 			_r$6 = sline(expr); /* */ $s = 20; case 20: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
 			_arg$10 = _r$6;
-			$r = context.Code.AddABC(0, _arg$8, _arg$9, 0, _arg$10); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = context$1.Code.AddABC(0, _arg$8, _arg$9, 0, _arg$10); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return 1;
 		/* } */ case 19:
-		if (context.RegTop() > (((funcreg + 2 >> 0) + ec.varargopt >> 0)) || ec.varargopt < -1) {
+		if (context$1.RegTop() > (((funcreg + 2 >> 0) + ec.varargopt >> 0)) || ec.varargopt < -1) {
 			$s = -1; return 0;
 		}
 		$s = -1; return ec.varargopt + 1 >> 0;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: compileFuncCallExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._ref = _ref; $f.ar = ar; $f.argc = argc; $f.b = b; $f.b$1 = b$1; $f.c = c; $f.context = context; $f.ec = ec; $f.expr = expr; $f.funcreg = funcreg; $f.i = i; $f.islastvararg = islastvararg; $f.name = name; $f.reg = reg; $f.reg2 = reg2; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: compileFuncCallExpr }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$10 = _arg$10; $f._arg$2 = _arg$2; $f._arg$3 = _arg$3; $f._arg$4 = _arg$4; $f._arg$5 = _arg$5; $f._arg$6 = _arg$6; $f._arg$7 = _arg$7; $f._arg$8 = _arg$8; $f._arg$9 = _arg$9; $f._i = _i; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._r$6 = _r$6; $f._ref = _ref; $f.ar = ar; $f.argc = argc; $f.b = b; $f.b$1 = b$1; $f.c = c; $f.context$1 = context$1; $f.ec = ec; $f.expr = expr; $f.funcreg = funcreg; $f.i = i; $f.islastvararg = islastvararg; $f.name = name; $f.reg = reg; $f.reg2 = reg2; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	loadRk = function(context, reg, expr, cnst) {
-		var $ptr, _arg, _arg$1, _arg$2, _r, _r$1, cindex, cnst, context, expr, reg, ret, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _r = $f._r; _r$1 = $f._r$1; cindex = $f.cindex; cnst = $f.cnst; context = $f.context; expr = $f.expr; reg = $f.reg; ret = $f.ret; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		_r = context.ConstIndex(cnst); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+	loadRk = function(context$1, reg, expr, cnst) {
+		var $ptr, _arg, _arg$1, _arg$2, _r, _r$1, cindex, cnst, context$1, expr, reg, ret, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _arg = $f._arg; _arg$1 = $f._arg$1; _arg$2 = $f._arg$2; _r = $f._r; _r$1 = $f._r$1; cindex = $f.cindex; cnst = $f.cnst; context$1 = $f.context$1; expr = $f.expr; reg = $f.reg; ret = $f.ret; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		_r = context$1.ConstIndex(cnst); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		cindex = _r;
 		/* */ if (cindex <= 255) { $s = 2; continue; }
 		/* */ $s = 3; continue;
@@ -34236,26 +34711,26 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			_arg$1 = cindex;
 			_r$1 = sline(expr); /* */ $s = 5; case 5: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 			_arg$2 = _r$1;
-			$r = context.Code.AddABx(2, _arg, _arg$1, _arg$2); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = context$1.Code.AddABx(2, _arg, _arg$1, _arg$2); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = -1; return ret;
 		/* } */ case 4:
 		$s = -1; return 0;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: loadRk }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._r = _r; $f._r$1 = _r$1; $f.cindex = cindex; $f.cnst = cnst; $f.context = context; $f.expr = expr; $f.reg = reg; $f.ret = ret; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: loadRk }; } $f.$ptr = $ptr; $f._arg = _arg; $f._arg$1 = _arg$1; $f._arg$2 = _arg$2; $f._r = _r; $f._r$1 = _r$1; $f.cindex = cindex; $f.cnst = cnst; $f.context$1 = context$1; $f.expr = expr; $f.reg = reg; $f.ret = ret; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	getIdentRefType = function(context, current, expr) {
-		var $ptr, context, current, expr;
+	getIdentRefType = function(context$1, current, expr) {
+		var $ptr, context$1, current, expr;
 		if (current === ptrType$13.nil) {
 			return 0;
 		} else if (current.FindLocalVar(expr.Value) > -1) {
-			if (current === context) {
+			if (current === context$1) {
 				return 2;
 			}
 			return 1;
 		}
-		return getIdentRefType(context, current.Parent, expr);
+		return getIdentRefType(context$1, current.Parent, expr);
 	};
-	getExprName = function(context, expr) {
-		var $ptr, _ref, _ref$1, context, ex, ex$1, expr, kex;
+	getExprName = function(context$1, expr) {
+		var $ptr, _ref, _ref$1, context$1, ex, ex$1, expr, kex;
 		_ref = expr;
 		if ($assertType(_ref, ptrType$36, true)[1]) {
 			ex = _ref.$val;
@@ -34271,16 +34746,16 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		}
 		return "?";
 	};
-	patchCode = function(context) {
-		var $ptr, _1, code, context, count, curop, d, distance, inst, jmp, maxreg, moven, np, pc, reg, reg$1, reg$2, reg$3, reg$4, x, x$1, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; code = $f.code; context = $f.context; count = $f.count; curop = $f.curop; d = $f.d; distance = $f.distance; inst = $f.inst; jmp = $f.jmp; maxreg = $f.maxreg; moven = $f.moven; np = $f.np; pc = $f.pc; reg = $f.reg; reg$1 = $f.reg$1; reg$2 = $f.reg$2; reg$3 = $f.reg$3; reg$4 = $f.reg$4; x = $f.x; x$1 = $f.x$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+	patchCode = function(context$1) {
+		var $ptr, _1, code, context$1, count, curop, d, distance, inst, jmp, maxreg, moven, np, pc, reg, reg$1, reg$2, reg$3, reg$4, x, x$1, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _1 = $f._1; code = $f.code; context$1 = $f.context$1; count = $f.count; curop = $f.curop; d = $f.d; distance = $f.distance; inst = $f.inst; jmp = $f.jmp; maxreg = $f.maxreg; moven = $f.moven; np = $f.np; pc = $f.pc; reg = $f.reg; reg$1 = $f.reg$1; reg$2 = $f.reg$2; reg$3 = $f.reg$3; reg$4 = $f.reg$4; x = $f.x; x$1 = $f.x$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		maxreg = 1;
-		np = (context.Proto.NumParameters >> 0);
+		np = (context$1.Proto.NumParameters >> 0);
 		if (np > 1) {
 			maxreg = np;
 		}
 		moven = 0;
-		code = context.Code.List();
+		code = context$1.Code.List();
 		pc = 0;
 		/* while (true) { */ case 1:
 			/* if (!(pc < code.$length)) { break; } */ if(!(pc < code.$length)) { $s = 2; continue; }
@@ -34296,7 +34771,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				/* */ if (_1 === (25)) { $s = 10; continue; }
 				/* */ $s = 11; continue;
 				/* if (_1 === (39)) { */ case 4:
-					pc = pc + (((x = context.Proto.FunctionPrototypes, x$1 = opGetArgBx(inst), ((x$1 < 0 || x$1 >= x.$length) ? ($throwRuntimeError("index out of range"), undefined) : x.$array[x.$offset + x$1])).NumUpvalues >> 0)) >> 0;
+					pc = pc + (((x = context$1.Proto.FunctionPrototypes, x$1 = opGetArgBx(inst), ((x$1 < 0 || x$1 >= x.$length) ? ($throwRuntimeError("index out of range"), undefined) : x.$array[x.$offset + x$1])).NumUpvalues >> 0)) >> 0;
 					moven = 0;
 					pc = pc + (1) >> 0;
 					/* continue; */ $s = 1; continue;
@@ -34333,25 +34808,25 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					jmp = inst;
 					/* while (true) { */ case 13:
 						/* if (!((opGetOpCode(jmp) === 25) && count < 5)) { break; } */ if(!((opGetOpCode(jmp) === 25) && count < 5)) { $s = 14; continue; }
-						d = context.GetLabelPc(opGetArgSbx(jmp)) - pc >> 0;
+						d = context$1.GetLabelPc(opGetArgSbx(jmp)) - pc >> 0;
 						/* */ if (d > 131071) { $s = 15; continue; }
 						/* */ $s = 16; continue;
 						/* if (d > 131071) { */ case 15:
 							/* */ if (distance === 0) { $s = 17; continue; }
 							/* */ $s = 18; continue;
 							/* if (distance === 0) { */ case 17:
-								$r = raiseCompileError(context, context.Proto.LineDefined, "too long to jump.", new sliceType$7([])); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+								$r = raiseCompileError(context$1, context$1.Proto.LineDefined, "too long to jump.", new sliceType$7([])); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 							/* } */ case 18:
 							/* break; */ $s = 14; continue;
 						/* } */ case 16:
 						distance = d;
 						count = count + (1) >> 0;
-						jmp = context.Code.At((pc + distance >> 0) + 1 >> 0);
+						jmp = context$1.Code.At((pc + distance >> 0) + 1 >> 0);
 					/* } */ $s = 13; continue; case 14:
 					if (distance === 0) {
-						context.Code.SetOpCode(pc, 41);
+						context$1.Code.SetOpCode(pc, 41);
 					} else {
-						context.Code.SetSbx(pc, distance);
+						context$1.Code.SetSbx(pc, distance);
 					}
 					$s = 12; continue;
 				/* } else { */ case 11:
@@ -34365,8 +34840,8 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				moven = moven + (1) >> 0;
 			} else {
 				if (moven > 1) {
-					context.Code.SetOpCode(pc - moven >> 0, 1);
-					context.Code.SetC(pc - moven >> 0, intMin(moven - 1 >> 0, 511));
+					context$1.Code.SetOpCode(pc - moven >> 0, 1);
+					context$1.Code.SetC(pc - moven >> 0, intMin(moven - 1 >> 0, 511));
 				}
 				moven = 0;
 			}
@@ -34376,15 +34851,15 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* */ if (maxreg > 200) { $s = 20; continue; }
 		/* */ $s = 21; continue;
 		/* if (maxreg > 200) { */ case 20:
-			$r = raiseCompileError(context, context.Proto.LineDefined, "register overflow(too many local variables)", new sliceType$7([])); /* */ $s = 22; case 22: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = raiseCompileError(context$1, context$1.Proto.LineDefined, "register overflow(too many local variables)", new sliceType$7([])); /* */ $s = 22; case 22: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 21:
-		context.Proto.NumUsedRegisters = (maxreg << 24 >>> 24);
+		context$1.Proto.NumUsedRegisters = (maxreg << 24 >>> 24);
 		$s = -1; return;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: patchCode }; } $f.$ptr = $ptr; $f._1 = _1; $f.code = code; $f.context = context; $f.count = count; $f.curop = curop; $f.d = d; $f.distance = distance; $f.inst = inst; $f.jmp = jmp; $f.maxreg = maxreg; $f.moven = moven; $f.np = np; $f.pc = pc; $f.reg = reg; $f.reg$1 = reg$1; $f.reg$2 = reg$2; $f.reg$3 = reg$3; $f.reg$4 = reg$4; $f.x = x; $f.x$1 = x$1; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: patchCode }; } $f.$ptr = $ptr; $f._1 = _1; $f.code = code; $f.context$1 = context$1; $f.count = count; $f.curop = curop; $f.d = d; $f.distance = distance; $f.inst = inst; $f.jmp = jmp; $f.maxreg = maxreg; $f.moven = moven; $f.np = np; $f.pc = pc; $f.reg = reg; $f.reg$1 = reg$1; $f.reg$2 = reg$2; $f.reg$3 = reg$3; $f.reg$4 = reg$4; $f.x = x; $f.x$1 = x$1; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	Compile = function(chunk, name) {
-		var $ptr, _r, chunk, context, err, funcexpr, name, parlist, proto, $s, $deferred, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; chunk = $f.chunk; context = $f.context; err = $f.err; funcexpr = $f.funcexpr; name = $f.name; parlist = $f.parlist; proto = $f.proto; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
+		var $ptr, _r, chunk, context$1, err, funcexpr, name, parlist, proto, $s, $deferred, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; chunk = $f.chunk; context$1 = $f.context$1; err = $f.err; funcexpr = $f.funcexpr; name = $f.name; parlist = $f.parlist; proto = $f.proto; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
 		err = [err];
 		proto = ptrType$19.nil;
 		err[0] = $ifaceNil;
@@ -34405,11 +34880,11 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		parlist = new ast.ParList.ptr(true, new sliceType$1([]));
 		funcexpr = new ast.FunctionExpr.ptr(new ast.ExprBase.ptr(new ast.Node.ptr(0, 0)), parlist, chunk);
 		_r = newFuncContext(name, ptrType$13.nil); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
-		context = _r;
-		$r = compileFunctionExpr(context, funcexpr, ecnone(0)); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		proto = context.Proto;
+		context$1 = _r;
+		$r = compileFunctionExpr(context$1, funcexpr, ecnone(0)); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		proto = context$1.Proto;
 		$s = -1; return [proto, err[0]];
-		/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if (!$curGoroutine.asleep) { return  [proto, err[0]]; } if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: Compile }; } $f.$ptr = $ptr; $f._r = _r; $f.chunk = chunk; $f.context = context; $f.err = err; $f.funcexpr = funcexpr; $f.name = name; $f.parlist = parlist; $f.proto = proto; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
+		/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if (!$curGoroutine.asleep) { return  [proto, err[0]]; } if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: Compile }; } $f.$ptr = $ptr; $f._r = _r; $f.chunk = chunk; $f.context$1 = context$1; $f.err = err; $f.funcexpr = funcexpr; $f.name = name; $f.parlist = parlist; $f.proto = proto; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
 	};
 	$pkg.Compile = Compile;
 	init = function() {
@@ -34435,16 +34910,18 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	};
 	$pkg.OpenCoroutine = OpenCoroutine;
 	coCreate = function(L) {
-		var $ptr, L, _r, base, fn, newthread, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _r = $f._r; base = $f.base; fn = $f.fn; newthread = $f.newthread; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		var $ptr, L, _r, _r$1, _tuple, base, fn, newthread, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _r = $f._r; _r$1 = $f._r$1; _tuple = $f._tuple; base = $f.base; fn = $f.fn; newthread = $f.newthread; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		_r = L.CheckFunction(1); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		fn = _r;
-		newthread = L.NewThread();
+		_r$1 = L.NewThread(); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+		_tuple = _r$1;
+		newthread = _tuple[0];
 		base = 0;
 		newthread.stack.Push(new callFrame.ptr(0, fn, ptrType$11.nil, 0, base, base + 1 >> 0, base, 0, -1, 0));
 		L.Push(newthread);
 		$s = -1; return 1;
-		/* */ } return; } if ($f === undefined) { $f = { $blk: coCreate }; } $f.$ptr = $ptr; $f.L = L; $f._r = _r; $f.base = base; $f.fn = fn; $f.newthread = newthread; $f.$s = $s; $f.$r = $r; return $f;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: coCreate }; } $f.$ptr = $ptr; $f.L = L; $f._r = _r; $f._r$1 = _r$1; $f._tuple = _tuple; $f.base = base; $f.fn = fn; $f.newthread = newthread; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	coYield = function(L) {
 		var $ptr, L;
@@ -35182,11 +35659,10 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		i = idx;
 		/* while (true) { */ case 3:
 			/* if (!(i <= top)) { break; } */ if(!(i <= top)) { $s = 4; continue; }
-			s = [s];
 			$r = L.CheckTypes(i, new sliceType$8([2, 3])); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			_r$1 = LVAsString(L.Get(i)); /* */ $s = 6; case 6: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
-			s[0] = _r$1;
-			_r$2 = out.Write(s[0]); /* */ $s = 7; case 7: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+			s = _r$1;
+			_r$2 = out.Write(unsafeFastStringToReadOnlyBytes(s)); /* */ $s = 7; case 7: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 			_tuple = _r$2;
 			err = _tuple[1];
 			/* */ if (!($interfaceIsEqual(err, $ifaceNil))) { $s = 8; continue; }
@@ -37376,7 +37852,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	newLState = function(options) {
 		var $ptr, al, ls, options;
 		al = newAllocator(32);
-		ls = new LState.ptr(newGlobal(), ptrType$10.nil, ptrType$1.nil, panicWithTraceback, false, $clone(options, Options), 0, newRegistry(options.RegistrySize, al), newCallFrameStack(options.CallStackSize), al, ptrType$11.nil, false, ptrType$57.nil, false);
+		ls = new LState.ptr(newGlobal(), ptrType$10.nil, ptrType$1.nil, panicWithTraceback, false, $clone(options, Options), 0, newRegistry(options.RegistrySize, al), newCallFrameStack(options.CallStackSize), al, ptrType$11.nil, false, ptrType$57.nil, false, mainLoop, $ifaceNil);
 		ls.Env = ls.G.Global;
 		return ls;
 	};
@@ -38040,10 +38516,10 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* if (ls.G.MainThread === ptrType$10.nil) { */ case 3:
 			ls.G.MainThread = ls;
 			ls.G.CurrentThread = ls;
-			$r = mainLoop(ls, ptrType$11.nil); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = ls.mainLoop(ls, ptrType$11.nil); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 5; continue;
 		/* } else { */ case 4:
-			$r = mainLoop(ls, ls.currentFrame); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			$r = ls.mainLoop(ls, ls.currentFrame); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 5:
 		if (!((nret === -1))) {
 			ls.reg.SetTop(rbase + nret >> 0);
@@ -38550,12 +39026,24 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	};
 	LState.prototype.CreateTable = function(acap, hcap) { return this.$val.CreateTable(acap, hcap); };
 	LState.ptr.prototype.NewThread = function() {
-		var $ptr, ls, thread;
+		var $ptr, _r, _tuple, f, ls, thread, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _tuple = $f._tuple; f = $f.f; ls = $f.ls; thread = $f.thread; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		ls = this;
 		thread = newLState($clone(ls.Options, Options));
 		thread.G = ls.G;
 		thread.Env = ls.Env;
-		return thread;
+		f = $throwNilPointerError;
+		/* */ if (!($interfaceIsEqual(ls.ctx, $ifaceNil))) { $s = 1; continue; }
+		/* */ $s = 2; continue;
+		/* if (!($interfaceIsEqual(ls.ctx, $ifaceNil))) { */ case 1:
+			thread.mainLoop = mainLoopWithContext;
+			_r = context.WithCancel(ls.ctx); /* */ $s = 3; case 3: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+			_tuple = _r;
+			thread.ctx = _tuple[0];
+			f = _tuple[1];
+		/* } */ case 2:
+		$s = -1; return [thread, f];
+		/* */ } return; } if ($f === undefined) { $f = { $blk: LState.ptr.prototype.NewThread }; } $f.$ptr = $ptr; $f._r = _r; $f._tuple = _tuple; $f.f = f; $f.ls = ls; $f.thread = thread; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	LState.prototype.NewThread = function() { return this.$val.NewThread(); };
 	LState.ptr.prototype.NewUserData = function() {
@@ -39525,6 +40013,28 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* */ } return; } if ($f === undefined) { $f = { $blk: LState.ptr.prototype.SetMx }; } $f.$ptr = $ptr; $f.ls = ls; $f.mx = mx; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	LState.prototype.SetMx = function(mx) { return this.$val.SetMx(mx); };
+	LState.ptr.prototype.SetContext = function(ctx) {
+		var $ptr, ctx, ls;
+		ls = this;
+		ls.mainLoop = mainLoopWithContext;
+		ls.ctx = ctx;
+	};
+	LState.prototype.SetContext = function(ctx) { return this.$val.SetContext(ctx); };
+	LState.ptr.prototype.Context = function() {
+		var $ptr, ls;
+		ls = this;
+		return ls.ctx;
+	};
+	LState.prototype.Context = function() { return this.$val.Context(); };
+	LState.ptr.prototype.RemoveContext = function() {
+		var $ptr, ls, oldctx;
+		ls = this;
+		oldctx = ls.ctx;
+		ls.mainLoop = mainLoop;
+		ls.ctx = $ifaceNil;
+		return oldctx;
+	};
+	LState.prototype.RemoveContext = function() { return this.$val.RemoveContext(); };
 	LState.ptr.prototype.ToChannel = function(n) {
 		var $ptr, _tuple, ls, lv, n, ok;
 		ls = this;
@@ -39616,9 +40126,8 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	strFind = function(L) {
 		var $ptr, L, _arg, _arg$1, _q, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _tuple, err, i, init$3, md, mds, pattern, plain, pos, str, $s, $r;
 		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _arg = $f._arg; _arg$1 = $f._arg$1; _q = $f._q; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _tuple = $f._tuple; err = $f.err; i = $f.i; init$3 = $f.init$3; md = $f.md; mds = $f.mds; pattern = $f.pattern; plain = $f.plain; pos = $f.pos; str = $f.str; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		str = [str];
 		_r = L.CheckString(1); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
-		str[0] = _r;
+		str = _r;
 		_r$1 = L.CheckString(2); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		pattern = _r$1;
 		if (pattern.length === 0) {
@@ -39626,7 +40135,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			L.Push(new LNumber(0));
 			$s = -1; return 2;
 		}
-		_arg = str[0];
+		_arg = str;
 		_r$2 = L.OptInt(3, 1); /* */ $s = 3; case 3: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 		_arg$1 = _r$2;
 		_r$3 = luaIndex2StringIndex(_arg, _arg$1, true); /* */ $s = 4; case 4: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
@@ -39636,7 +40145,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			plain = LVAsBool(L.Get(4));
 		}
 		if (plain) {
-			pos = strings.Index($substring(str[0], init$3), pattern);
+			pos = strings.Index($substring(str, init$3), pattern);
 			if (pos < 0) {
 				L.Push($pkg.LNil);
 				$s = -1; return 1;
@@ -39645,7 +40154,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			L.Push(new LNumber(((init$3 + pos >> 0) + pattern.length >> 0)));
 			$s = -1; return 2;
 		}
-		_r$4 = pm.Find(pattern, str[0], init$3, 1); /* */ $s = 5; case 5: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+		_r$4 = pm.Find(pattern, unsafeFastStringToReadOnlyBytes(str), init$3, 1); /* */ $s = 5; case 5: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 		_tuple = _r$4;
 		mds = _tuple[0];
 		err = _tuple[1];
@@ -39668,7 +40177,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			if (md.IsPosCapture(i)) {
 				L.Push(new LNumber(md.Capture(i)));
 			} else {
-				L.Push(new LString($substring(str[0], md.Capture(i), md.Capture(i + 1 >> 0))));
+				L.Push(new LString($substring(str, md.Capture(i), md.Capture(i + 1 >> 0))));
 			}
 			i = i + (2) >> 0;
 		}
@@ -39697,9 +40206,8 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	strGsub = function(L) {
 		var $ptr, L, _r, _r$1, _r$2, _r$3, _r$4, _r$5, _r$6, _r$7, _r$8, _ref, _tuple, err, limit, lv, lv$1, lv$2, mds, pat, repl, str, $s, $r;
 		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _r$5 = $f._r$5; _r$6 = $f._r$6; _r$7 = $f._r$7; _r$8 = $f._r$8; _ref = $f._ref; _tuple = $f._tuple; err = $f.err; limit = $f.limit; lv = $f.lv; lv$1 = $f.lv$1; lv$2 = $f.lv$2; mds = $f.mds; pat = $f.pat; repl = $f.repl; str = $f.str; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		str = [str];
 		_r = L.CheckString(1); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
-		str[0] = _r;
+		str = _r;
 		_r$1 = L.CheckString(2); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		pat = _r$1;
 		$r = L.CheckTypes(3, new sliceType$8([3, 7, 4])); /* */ $s = 3; case 3: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
@@ -39707,7 +40215,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		repl = _r$2;
 		_r$3 = L.OptInt(4, -1); /* */ $s = 5; case 5: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 		limit = _r$3;
-		_r$4 = pm.Find(pat, str[0], 0, limit); /* */ $s = 6; case 6: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+		_r$4 = pm.Find(pat, unsafeFastStringToReadOnlyBytes(str), 0, limit); /* */ $s = 6; case 6: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
 		_tuple = _r$4;
 		mds = _tuple[0];
 		err = _tuple[1];
@@ -39729,17 +40237,17 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		/* */ $s = 14; continue;
 		/* if ($assertType(_ref, LString, true)[1]) { */ case 11:
 			lv = _ref.$val;
-			_r$6 = strGsubStr(L, str[0], lv, mds); /* */ $s = 15; case 15: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
+			_r$6 = strGsubStr(L, str, lv, mds); /* */ $s = 15; case 15: if($c) { $c = false; _r$6 = _r$6.$blk(); } if (_r$6 && _r$6.$blk !== undefined) { break s; }
 			$r = L.Push(new LString(_r$6)); /* */ $s = 16; case 16: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 14; continue;
 		/* } else if ($assertType(_ref, ptrType$1, true)[1]) { */ case 12:
 			lv$1 = _ref.$val;
-			_r$7 = strGsubTable(L, str[0], lv$1, mds); /* */ $s = 17; case 17: if($c) { $c = false; _r$7 = _r$7.$blk(); } if (_r$7 && _r$7.$blk !== undefined) { break s; }
+			_r$7 = strGsubTable(L, str, lv$1, mds); /* */ $s = 17; case 17: if($c) { $c = false; _r$7 = _r$7.$blk(); } if (_r$7 && _r$7.$blk !== undefined) { break s; }
 			$r = L.Push(new LString(_r$7)); /* */ $s = 18; case 18: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			$s = 14; continue;
 		/* } else if ($assertType(_ref, ptrType$8, true)[1]) { */ case 13:
 			lv$2 = _ref.$val;
-			_r$8 = strGsubFunc(L, str[0], lv$2, mds); /* */ $s = 19; case 19: if($c) { $c = false; _r$8 = _r$8.$blk(); } if (_r$8 && _r$8.$blk !== undefined) { break s; }
+			_r$8 = strGsubFunc(L, str, lv$2, mds); /* */ $s = 19; case 19: if($c) { $c = false; _r$8 = _r$8.$blk(); } if (_r$8 && _r$8.$blk !== undefined) { break s; }
 			$r = L.Push(new LString(_r$8)); /* */ $s = 20; case 20: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		/* } */ case 14:
 		L.Push(new LNumber(mds.$length));
@@ -40016,14 +40524,13 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	strMatch = function(L) {
 		var $ptr, L, _1, _q, _r, _r$1, _r$2, _r$3, _r$4, _tuple, err, i, l, md, mds, nsubs, offset, pattern, str, $s, $r;
 		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _1 = $f._1; _q = $f._q; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _tuple = $f._tuple; err = $f.err; i = $f.i; l = $f.l; md = $f.md; mds = $f.mds; nsubs = $f.nsubs; offset = $f.offset; pattern = $f.pattern; str = $f.str; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		str = [str];
 		_r = L.CheckString(1); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
-		str[0] = _r;
+		str = _r;
 		_r$1 = L.CheckString(2); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		pattern = _r$1;
 		_r$2 = L.OptInt(3, 1); /* */ $s = 3; case 3: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 		offset = _r$2;
-		l = str[0].length;
+		l = str.length;
 		if (offset < 0) {
 			offset = (l + offset >> 0) + 1 >> 0;
 		}
@@ -40031,7 +40538,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		if (offset < 0) {
 			offset = 0;
 		}
-		_r$3 = pm.Find(pattern, str[0], offset, 1); /* */ $s = 4; case 4: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+		_r$3 = pm.Find(pattern, unsafeFastStringToReadOnlyBytes(str), offset, 1); /* */ $s = 4; case 4: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
 		_tuple = _r$3;
 		mds = _tuple[0];
 		err = _tuple[1];
@@ -40049,7 +40556,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		nsubs = (_q = md.CaptureLength() / 2, (_q === _q && _q !== 1/0 && _q !== -1/0) ? _q >> 0 : $throwRuntimeError("integer divide by zero"));
 		_1 = nsubs;
 		if (_1 === (1)) {
-			L.Push(new LString($substring(str[0], md.Capture(0), md.Capture(1))));
+			L.Push(new LString($substring(str, md.Capture(0), md.Capture(1))));
 			$s = -1; return 1;
 		} else {
 			i = 2;
@@ -40058,7 +40565,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				if (md.IsPosCapture(i)) {
 					L.Push(new LNumber(md.Capture(i)));
 				} else {
-					L.Push(new LString($substring(str[0], md.Capture(i), md.Capture(i + 1 >> 0))));
+					L.Push(new LString($substring(str, md.Capture(i), md.Capture(i + 1 >> 0))));
 				}
 				i = i + (2) >> 0;
 			}
@@ -40557,12 +41064,14 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	};
 	LTable.prototype.ForEach = function(cb) { return this.$val.ForEach(cb); };
 	LTable.ptr.prototype.Next = function(key) {
-		var $ptr, _entry, _entry$1, _entry$2, _entry$3, _entry$4, _entry$5, _entry$6, _i, _i$1, _key, _key$1, _keys, _keys$1, _ref, _ref$1, _tuple, _tuple$1, _tuple$2, _tuple$3, _tuple$4, _tuple$5, _tuple$6, i, i$1, index, k, k$1, key, kv, length, ok, skey, skey$1, sok, sok$1, sv, sv$1, svok, svok$1, tb, v, v$1, v$2, vok, vok$1, x, x$1, x$2, x$3, x$4;
+		var $ptr, _entry, _entry$1, _entry$2, _entry$3, _i, _i$1, _key, _key$1, _keys, _keys$1, _ref, _ref$1, _tuple, i, i$1, index, init$3, k, k$1, key, kv, length, ok, tb, v, v$1, v$2, x, x$1, x$2, x$3, x$4, x$5;
 		tb = this;
+		init$3 = false;
 		if ($interfaceIsEqual(key, $pkg.LNil)) {
 			tb.keys = sliceType$5.nil;
 			tb.k2i = false;
 			key = new LNumber(0);
+			init$3 = true;
 		}
 		length = 0;
 		if (!(tb.dict === false)) {
@@ -40612,69 +41121,43 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				}
 			}
 		}
-		_tuple = $assertType(key, LNumber, true);
-		kv = _tuple[0];
-		ok = _tuple[1];
-		if (ok && isInteger(kv) && (kv >> 0) >= 0) {
-			index = (kv >> 0);
-			if (!(tb.array === sliceType$5.nil)) {
-				while (true) {
-					if (!(index < tb.array.$length)) { break; }
-					v = (x$2 = tb.array, ((index < 0 || index >= x$2.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$2.$array[x$2.$offset + index]));
-					if (!($interfaceIsEqual(v, $pkg.LNil))) {
-						return [new LNumber((index + 1 >> 0)), v];
+		if (init$3 || !($interfaceIsEqual(key, new LNumber(0)))) {
+			_tuple = $assertType(key, LNumber, true);
+			kv = _tuple[0];
+			ok = _tuple[1];
+			if (ok && isInteger(kv) && (kv >> 0) >= 0) {
+				index = (kv >> 0);
+				if (!(tb.array === sliceType$5.nil)) {
+					while (true) {
+						if (!(index < tb.array.$length)) { break; }
+						v = (x$2 = tb.array, ((index < 0 || index >= x$2.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$2.$array[x$2.$offset + index]));
+						if (!($interfaceIsEqual(v, $pkg.LNil))) {
+							return [new LNumber((index + 1 >> 0)), v];
+						}
+						index = index + (1) >> 0;
 					}
-					index = index + (1) >> 0;
 				}
-			}
-			if (tb.array === sliceType$5.nil || (index === tb.array.$length)) {
-				if ((tb.dict === false || ($keys(tb.dict).length === 0)) && (tb.strdict === false || ($keys(tb.strdict).length === 0))) {
-					tb.keys = sliceType$5.nil;
-					tb.k2i = false;
-					return [$pkg.LNil, $pkg.LNil];
-				}
-				key = (x$3 = tb.keys, (0 >= x$3.$length ? ($throwRuntimeError("index out of range"), undefined) : x$3.$array[x$3.$offset + 0]));
-				_tuple$1 = $assertType(key, LString, true);
-				skey = _tuple$1[0];
-				sok = _tuple$1[1];
-				if (sok && !(tb.strdict === false)) {
-					_tuple$2 = (_entry$2 = tb.strdict[$String.keyFor(skey)], _entry$2 !== undefined ? [_entry$2.v, true] : [$ifaceNil, false]);
-					sv = _tuple$2[0];
-					svok = _tuple$2[1];
-					if (svok && !($interfaceIsEqual(sv, $pkg.LNil))) {
-						return [key, sv];
+				if (tb.array === sliceType$5.nil || (index === tb.array.$length)) {
+					if ((tb.dict === false || ($keys(tb.dict).length === 0)) && (tb.strdict === false || ($keys(tb.strdict).length === 0))) {
+						tb.keys = sliceType$5.nil;
+						tb.k2i = false;
+						return [$pkg.LNil, $pkg.LNil];
 					}
-				} else if (!(tb.dict === false)) {
-					_tuple$3 = (_entry$3 = tb.dict[LValue.keyFor(key)], _entry$3 !== undefined ? [_entry$3.v, true] : [$ifaceNil, false]);
-					v$1 = _tuple$3[0];
-					vok = _tuple$3[1];
-					if (vok && !($interfaceIsEqual(v$1, $pkg.LNil))) {
+					key = (x$3 = tb.keys, (0 >= x$3.$length ? ($throwRuntimeError("index out of range"), undefined) : x$3.$array[x$3.$offset + 0]));
+					v$1 = tb.RawGetH(key);
+					if (!($interfaceIsEqual(v$1, $pkg.LNil))) {
 						return [key, v$1];
 					}
 				}
 			}
 		}
-		i$1 = (_entry$4 = tb.k2i[LValue.keyFor(key)], _entry$4 !== undefined ? _entry$4.v : 0) + 1 >> 0;
+		i$1 = (_entry$2 = tb.k2i[LValue.keyFor(key)], _entry$2 !== undefined ? _entry$2.v : 0) + 1 >> 0;
 		while (true) {
 			if (!(i$1 < length)) { break; }
-			key = (x$4 = tb.keys, ((i$1 < 0 || i$1 >= x$4.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$4.$array[x$4.$offset + i$1]));
-			_tuple$4 = $assertType(key, LString, true);
-			skey$1 = _tuple$4[0];
-			sok$1 = _tuple$4[1];
-			if (sok$1 && !(tb.strdict === false)) {
-				_tuple$5 = (_entry$5 = tb.strdict[$String.keyFor(skey$1)], _entry$5 !== undefined ? [_entry$5.v, true] : [$ifaceNil, false]);
-				sv$1 = _tuple$5[0];
-				svok$1 = _tuple$5[1];
-				if (svok$1 && !($interfaceIsEqual(sv$1, $pkg.LNil))) {
-					return [key, sv$1];
-				}
-			} else if (!(tb.dict === false)) {
-				_tuple$6 = (_entry$6 = tb.dict[LValue.keyFor(key)], _entry$6 !== undefined ? [_entry$6.v, true] : [$ifaceNil, false]);
-				v$2 = _tuple$6[0];
-				vok$1 = _tuple$6[1];
-				if (vok$1 && !($interfaceIsEqual(v$2, $pkg.LNil))) {
-					return [key, v$2];
-				}
+			key = (x$4 = tb.keys, x$5 = (_entry$3 = tb.k2i[LValue.keyFor(key)], _entry$3 !== undefined ? _entry$3.v : 0) + 1 >> 0, ((x$5 < 0 || x$5 >= x$4.$length) ? ($throwRuntimeError("index out of range"), undefined) : x$4.$array[x$4.$offset + x$5]));
+			v$2 = tb.RawGetH(key);
+			if (!($interfaceIsEqual(v$2, $pkg.LNil))) {
+				return [key, v$2];
 			}
 			i$1 = i$1 + (1) >> 0;
 		}
@@ -41112,6 +41595,12 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			i = i + (1) >> 0;
 		}
 	};
+	unsafeFastStringToReadOnlyBytes = function(s) {
+		var $ptr, bh, s, s$24ptr, sh;
+		sh = $pointerOfStructConversion((s$24ptr || (s$24ptr = new ptrType$72(function() { return s; }, function($v) { s = $v; }))), ptrType$71);
+		bh = new reflect.SliceHeader.ptr(sh.Data, sh.Len, sh.Len);
+		return bh;
+	};
 	LValueType.prototype.String = function() {
 		var $ptr, vt, x;
 		vt = this.$val;
@@ -41517,6 +42006,48 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		$s = -1; return;
 		/* */ } return; } if ($f === undefined) { $f = { $blk: mainLoop }; } $f.$ptr = $ptr; $f.L = L; $f._r = _r; $f._r$1 = _r$1; $f.baseframe = baseframe; $f.cf = cf; $f.inst = inst; $f.x = x; $f.x$1 = x$1; $f.x$2 = x$2; $f.$s = $s; $f.$r = $r; return $f;
 	};
+	mainLoopWithContext = function(L, baseframe) {
+		var $ptr, L, _r, _r$1, _r$2, _r$3, _r$4, _selection, baseframe, cf, inst, x, x$1, x$2, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _selection = $f._selection; baseframe = $f.baseframe; cf = $f.cf; inst = $f.inst; x = $f.x; x$1 = $f.x$1; x$2 = $f.x$2; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		inst = 0;
+		cf = ptrType$11.nil;
+		if (L.stack.IsEmpty()) {
+			$s = -1; return;
+		}
+		L.currentFrame = L.stack.Last();
+		/* */ if (L.currentFrame.Fn.IsG) { $s = 1; continue; }
+		/* */ $s = 2; continue;
+		/* if (L.currentFrame.Fn.IsG) { */ case 1:
+			_r = callGFunction(L, false); /* */ $s = 3; case 3: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+			_r;
+			$s = -1; return;
+		/* } */ case 2:
+		/* while (true) { */ case 4:
+			cf = L.currentFrame;
+			inst = (x = cf.Fn.Proto.Code, x$1 = cf.Pc, ((x$1 < 0 || x$1 >= x.$length) ? ($throwRuntimeError("index out of range"), undefined) : x.$array[x.$offset + x$1]));
+			cf.Pc = cf.Pc + (1) >> 0;
+			_r$1 = L.ctx.Done(); /* */ $s = 6; case 6: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+			_selection = $select([[_r$1], []]);
+			/* */ if (_selection[0] === 0) { $s = 7; continue; }
+			/* */ if (_selection[0] === 1) { $s = 8; continue; }
+			/* */ $s = 9; continue;
+			/* if (_selection[0] === 0) { */ case 7:
+				_r$2 = L.ctx.Err(); /* */ $s = 10; case 10: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+				_r$3 = _r$2.Error(); /* */ $s = 11; case 11: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+				$r = L.RaiseError(_r$3, new sliceType$7([])); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				$s = -1; return;
+			/* } else if (_selection[0] === 1) { */ case 8:
+				_r$4 = (x$2 = ((inst >>> 26 >>> 0) >> 0), ((x$2 < 0 || x$2 >= jumpTable.length) ? ($throwRuntimeError("index out of range"), undefined) : jumpTable[x$2]))(L, inst, baseframe); /* */ $s = 15; case 15: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+				/* */ if (_r$4 === 1) { $s = 13; continue; }
+				/* */ $s = 14; continue;
+				/* if (_r$4 === 1) { */ case 13:
+					$s = -1; return;
+				/* } */ case 14:
+			/* } */ case 9:
+		/* } */ $s = 4; continue; case 5:
+		$s = -1; return;
+		/* */ } return; } if ($f === undefined) { $f = { $blk: mainLoopWithContext }; } $f.$ptr = $ptr; $f.L = L; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._selection = _selection; $f.baseframe = baseframe; $f.cf = cf; $f.inst = inst; $f.x = x; $f.x$1 = x$1; $f.x$2 = x$2; $f.$s = $s; $f.$r = $r; return $f;
+	};
 	switchToParentThread = function(L, nargs, haserror, kill) {
 		var $ptr, L, haserror, kill, nargs, offset, parent, $s, $r;
 		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; haserror = $f.haserror; kill = $f.kill; nargs = $f.nargs; offset = $f.offset; parent = $f.parent; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
@@ -41644,7 +42175,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$s = -1; return;
 			/* */ } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._r = _r; $f._tuple = _tuple; $f.lv = lv; $f.ok = ok; $f.parent = parent; $f.rcv = rcv; $f.v = v; $f.$s = $s; $f.$r = $r; return $f;
 		}; })(L), []]);
-		$r = mainLoop(L[0], ptrType$11.nil); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = L[0].mainLoop(L[0], ptrType$11.nil); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$s = -1; return;
 		/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: threadRun }; } $f.$ptr = $ptr; $f.L = L; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
 	};
@@ -42304,6 +42835,11 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				callable = _tuple$1[0];
 				meta = _tuple$1[1];
 			/* } */ case 4:
+			/* */ if (callable === ptrType$8.nil) { $s = 6; continue; }
+			/* */ $s = 7; continue;
+			/* if (callable === ptrType$8.nil) { */ case 6:
+				$r = L.RaiseError("attempt to call a non-function object", new sliceType$7([])); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			/* } */ case 7:
 			ls = L;
 			idx = lbase;
 			if (!(ls.uvcache === ptrType$57.nil)) {
@@ -42323,22 +42859,22 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 					uv = uv.next;
 				}
 			}
-			/* */ if (callable.IsG) { $s = 6; continue; }
-			/* */ $s = 7; continue;
-			/* if (callable.IsG) { */ case 6:
+			/* */ if (callable.IsG) { $s = 9; continue; }
+			/* */ $s = 10; continue;
+			/* if (callable.IsG) { */ case 9:
 				luaframe = cf;
-				$r = L.pushCallFrame(new callFrame.ptr(0, callable, cf, 0, RA, RA + 1 >> 0, cf.ReturnBase, nargs, cf.NRet, 0), lv, meta); /* */ $s = 9; case 9: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-				_r$2 = callGFunction(L, true); /* */ $s = 12; case 12: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-				/* */ if (_r$2) { $s = 10; continue; }
-				/* */ $s = 11; continue;
-				/* if (_r$2) { */ case 10:
+				$r = L.pushCallFrame(new callFrame.ptr(0, callable, cf, 0, RA, RA + 1 >> 0, cf.ReturnBase, nargs, cf.NRet, 0), lv, meta); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				_r$2 = callGFunction(L, true); /* */ $s = 15; case 15: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+				/* */ if (_r$2) { $s = 13; continue; }
+				/* */ $s = 14; continue;
+				/* if (_r$2) { */ case 13:
 					$s = -1; return 1;
-				/* } */ case 11:
+				/* } */ case 14:
 				if (L.currentFrame === ptrType$11.nil || L.currentFrame.Fn.IsG || luaframe === baseframe) {
 					$s = -1; return 1;
 				}
-				$s = 8; continue;
-			/* } else { */ case 7:
+				$s = 11; continue;
+			/* } else { */ case 10:
 				base = cf.Base;
 				cf.Fn = callable;
 				cf.Pc = 0;
@@ -42431,7 +42967,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 				rg.top = regv + n >> 0;
 				cf.Base = base;
 				cf.LocalBase = base + (((cf.LocalBase - lbase$1 >> 0) + 1 >> 0)) >> 0;
-			/* } */ case 8:
+			/* } */ case 11:
 			$s = -1; return 0;
 			/* */ } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.A = A; $f.B = B; $f.L = L; $f.RA = RA; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.argtb = argtb; $f.base = base; $f.baseframe = baseframe; $f.callable = callable; $f.cf = cf; $f.fn = fn; $f.i = i; $f.i$1 = i$1; $f.i$2 = i$2; $f.i$3 = i$3; $f.i$4 = i$4; $f.idx = idx; $f.inst = inst; $f.lbase = lbase; $f.lbase$1 = lbase$1; $f.limit = limit; $f.ls = ls; $f.ls$1 = ls$1; $f.luaframe = luaframe; $f.lv = lv; $f.maxreg = maxreg; $f.meta = meta; $f.n = n; $f.nargs = nargs; $f.nargs$1 = nargs$1; $f.np = np; $f.nvarargs = nvarargs; $f.ok = ok; $f.prev = prev; $f.proto = proto; $f.reg = reg; $f.regv = regv; $f.rg = rg; $f.start = start; $f.tidx = tidx; $f.uv = uv; $f.x = x; $f.x$1 = x$1; $f.x$10 = x$10; $f.x$11 = x$11; $f.x$12 = x$12; $f.x$13 = x$13; $f.x$14 = x$14; $f.x$15 = x$15; $f.x$16 = x$16; $f.x$17 = x$17; $f.x$18 = x$18; $f.x$2 = x$2; $f.x$3 = x$3; $f.x$4 = x$4; $f.x$5 = x$5; $f.x$6 = x$6; $f.x$7 = x$7; $f.x$8 = x$8; $f.x$9 = x$9; $f.$s = $s; $f.$r = $r; return $f;
 		}), (function $b(L, inst, baseframe) {
@@ -42629,8 +43165,8 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			$s = -1; return 0;
 			/* */ } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.A = A; $f.L = L; $f.RA = RA; $f.Sbx = Sbx; $f._r = _r; $f._r$1 = _r$1; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f.baseframe = baseframe; $f.cf = cf; $f.init$3 = init$3; $f.inst = inst; $f.lbase = lbase; $f.ok1 = ok1; $f.ok2 = ok2; $f.reg = reg; $f.step = step; $f.$s = $s; $f.$r = $r; return $f;
 		}), (function $b(L, inst, baseframe) {
-			var $ptr, A, C, L, RA, baseframe, cf, inst, lbase, nret, reg, value, $s, $r;
-			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; A = $f.A; C = $f.C; L = $f.L; RA = $f.RA; baseframe = $f.baseframe; cf = $f.cf; inst = $f.inst; lbase = $f.lbase; nret = $f.nret; reg = $f.reg; value = $f.value; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+			var $ptr, A, C, L, RA, baseframe, cf, inst, lbase, nret, pc, reg, value, x, x$1, $s, $r;
+			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; A = $f.A; C = $f.C; L = $f.L; RA = $f.RA; baseframe = $f.baseframe; cf = $f.cf; inst = $f.inst; lbase = $f.lbase; nret = $f.nret; pc = $f.pc; reg = $f.reg; value = $f.value; x = $f.x; x$1 = $f.x$1; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 			reg = L.reg;
 			cf = L.currentFrame;
 			lbase = cf.LocalBase;
@@ -42638,17 +43174,20 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 			RA = lbase + A >> 0;
 			C = ((inst >>> 9 >>> 0) >> 0) & 511;
 			nret = C;
-			reg.SetTop(RA + 3 >> 0);
+			reg.SetTop((RA + 3 >> 0) + 2 >> 0);
+			reg.Set((RA + 3 >> 0) + 2 >> 0, reg.Get(RA + 2 >> 0));
+			reg.Set((RA + 3 >> 0) + 1 >> 0, reg.Get(RA + 1 >> 0));
+			reg.Set(RA + 3 >> 0, reg.Get(RA));
 			$r = L.callR(2, nret, RA + 3 >> 0); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			reg.SetTop(((RA + 2 >> 0) + C >> 0) + 1 >> 0);
 			value = reg.Get(RA + 3 >> 0);
 			if (!($interfaceIsEqual(value, $pkg.LNil))) {
 				reg.Set(RA + 2 >> 0, value);
-			} else {
-				cf.Pc = cf.Pc + (1) >> 0;
+				pc = (x = cf.Fn.Proto.Code, x$1 = cf.Pc, ((x$1 < 0 || x$1 >= x.$length) ? ($throwRuntimeError("index out of range"), undefined) : x.$array[x.$offset + x$1]));
+				cf.Pc = cf.Pc + (((((pc & 262143) >>> 0) >> 0) - 131071 >> 0)) >> 0;
 			}
+			cf.Pc = cf.Pc + (1) >> 0;
 			$s = -1; return 0;
-			/* */ } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.A = A; $f.C = C; $f.L = L; $f.RA = RA; $f.baseframe = baseframe; $f.cf = cf; $f.inst = inst; $f.lbase = lbase; $f.nret = nret; $f.reg = reg; $f.value = value; $f.$s = $s; $f.$r = $r; return $f;
+			/* */ } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.A = A; $f.C = C; $f.L = L; $f.RA = RA; $f.baseframe = baseframe; $f.cf = cf; $f.inst = inst; $f.lbase = lbase; $f.nret = nret; $f.pc = pc; $f.reg = reg; $f.value = value; $f.x = x; $f.x$1 = x$1; $f.$s = $s; $f.$r = $r; return $f;
 		}), (function(L, inst, baseframe) {
 			var $ptr, A, B, C, L, RA, baseframe, cf, i, inst, lbase, nelem, offset, reg, table, x, x$1;
 			reg = L.reg;
@@ -43151,23 +43690,23 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	ptrType$66.methods = [{prop: "IsEmpty", name: "IsEmpty", pkg: "", typ: $funcType([], [$Bool], false)}, {prop: "Clear", name: "Clear", pkg: "", typ: $funcType([], [], false)}, {prop: "Push", name: "Push", pkg: "", typ: $funcType([callFrame], [], false)}, {prop: "Remove", name: "Remove", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "Sp", name: "Sp", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "SetSp", name: "SetSp", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "Last", name: "Last", pkg: "", typ: $funcType([], [ptrType$11], false)}, {prop: "At", name: "At", pkg: "", typ: $funcType([$Int], [ptrType$11], false)}, {prop: "Pop", name: "Pop", pkg: "", typ: $funcType([], [ptrType$11], false)}];
 	ptrType$55.methods = [{prop: "SetTop", name: "SetTop", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "Top", name: "Top", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Push", name: "Push", pkg: "", typ: $funcType([LValue], [], false)}, {prop: "Pop", name: "Pop", pkg: "", typ: $funcType([], [LValue], false)}, {prop: "Get", name: "Get", pkg: "", typ: $funcType([$Int], [LValue], false)}, {prop: "CopyRange", name: "CopyRange", pkg: "", typ: $funcType([$Int, $Int, $Int, $Int], [], false)}, {prop: "FillNil", name: "FillNil", pkg: "", typ: $funcType([$Int, $Int], [], false)}, {prop: "Insert", name: "Insert", pkg: "", typ: $funcType([LValue, $Int], [], false)}, {prop: "Set", name: "Set", pkg: "", typ: $funcType([$Int, LValue], [], false)}, {prop: "SetNumber", name: "SetNumber", pkg: "", typ: $funcType([$Int, LNumber], [], false)}];
 	lValueArraySorter.methods = [{prop: "Len", name: "Len", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Swap", name: "Swap", pkg: "", typ: $funcType([$Int, $Int], [], false)}, {prop: "Less", name: "Less", pkg: "", typ: $funcType([$Int, $Int], [$Bool], false)}];
-	ptrType$73.methods = [{prop: "AppendString", name: "AppendString", pkg: "", typ: $funcType([$String], [], false)}, {prop: "AppendChar", name: "AppendChar", pkg: "", typ: $funcType([$Uint8], [], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Next", name: "Next", pkg: "", typ: $funcType([], [$Uint8, $Bool], false)}];
+	ptrType$75.methods = [{prop: "AppendString", name: "AppendString", pkg: "", typ: $funcType([$String], [], false)}, {prop: "AppendChar", name: "AppendChar", pkg: "", typ: $funcType([$Uint8], [], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Next", name: "Next", pkg: "", typ: $funcType([], [$Uint8, $Bool], false)}];
 	LValueType.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}];
 	ptrType$69.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}];
 	LBool.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}];
 	LString.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}, {prop: "Format", name: "Format", pkg: "", typ: $funcType([fmt.State, $Int32], [], false)}];
 	ptrType$1.methods = [{prop: "Len", name: "Len", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Append", name: "Append", pkg: "", typ: $funcType([LValue], [], false)}, {prop: "Insert", name: "Insert", pkg: "", typ: $funcType([$Int, LValue], [], false)}, {prop: "MaxN", name: "MaxN", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "Remove", name: "Remove", pkg: "", typ: $funcType([$Int], [LValue], false)}, {prop: "RawSet", name: "RawSet", pkg: "", typ: $funcType([LValue, LValue], [], false)}, {prop: "RawSetInt", name: "RawSetInt", pkg: "", typ: $funcType([$Int, LValue], [], false)}, {prop: "RawSetString", name: "RawSetString", pkg: "", typ: $funcType([$String, LValue], [], false)}, {prop: "RawSetH", name: "RawSetH", pkg: "", typ: $funcType([LValue, LValue], [], false)}, {prop: "RawGet", name: "RawGet", pkg: "", typ: $funcType([LValue], [LValue], false)}, {prop: "RawGetInt", name: "RawGetInt", pkg: "", typ: $funcType([$Int], [LValue], false)}, {prop: "RawGetH", name: "RawGetH", pkg: "", typ: $funcType([LValue], [LValue], false)}, {prop: "RawGetString", name: "RawGetString", pkg: "", typ: $funcType([$String], [LValue], false)}, {prop: "ForEach", name: "ForEach", pkg: "", typ: $funcType([funcType], [], false)}, {prop: "Next", name: "Next", pkg: "", typ: $funcType([LValue], [LValue, LValue], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}];
 	ptrType$8.methods = [{prop: "LocalName", name: "LocalName", pkg: "", typ: $funcType([$Int, $Int], [$String, $Bool], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}];
-	ptrType$10.methods = [{prop: "CheckAny", name: "CheckAny", pkg: "", typ: $funcType([$Int], [LValue], false)}, {prop: "CheckInt", name: "CheckInt", pkg: "", typ: $funcType([$Int], [$Int], false)}, {prop: "CheckInt64", name: "CheckInt64", pkg: "", typ: $funcType([$Int], [$Int64], false)}, {prop: "CheckNumber", name: "CheckNumber", pkg: "", typ: $funcType([$Int], [LNumber], false)}, {prop: "CheckString", name: "CheckString", pkg: "", typ: $funcType([$Int], [$String], false)}, {prop: "CheckBool", name: "CheckBool", pkg: "", typ: $funcType([$Int], [$Bool], false)}, {prop: "CheckTable", name: "CheckTable", pkg: "", typ: $funcType([$Int], [ptrType$1], false)}, {prop: "CheckFunction", name: "CheckFunction", pkg: "", typ: $funcType([$Int], [ptrType$8], false)}, {prop: "CheckUserData", name: "CheckUserData", pkg: "", typ: $funcType([$Int], [ptrType$9], false)}, {prop: "CheckThread", name: "CheckThread", pkg: "", typ: $funcType([$Int], [ptrType$10], false)}, {prop: "CheckType", name: "CheckType", pkg: "", typ: $funcType([$Int, LValueType], [], false)}, {prop: "CheckTypes", name: "CheckTypes", pkg: "", typ: $funcType([$Int, sliceType$8], [], true)}, {prop: "CheckOption", name: "CheckOption", pkg: "", typ: $funcType([$Int, sliceType$1], [$Int], false)}, {prop: "OptInt", name: "OptInt", pkg: "", typ: $funcType([$Int, $Int], [$Int], false)}, {prop: "OptInt64", name: "OptInt64", pkg: "", typ: $funcType([$Int, $Int64], [$Int64], false)}, {prop: "OptNumber", name: "OptNumber", pkg: "", typ: $funcType([$Int, LNumber], [LNumber], false)}, {prop: "OptString", name: "OptString", pkg: "", typ: $funcType([$Int, $String], [$String], false)}, {prop: "OptBool", name: "OptBool", pkg: "", typ: $funcType([$Int, $Bool], [$Bool], false)}, {prop: "OptTable", name: "OptTable", pkg: "", typ: $funcType([$Int, ptrType$1], [ptrType$1], false)}, {prop: "OptFunction", name: "OptFunction", pkg: "", typ: $funcType([$Int, ptrType$8], [ptrType$8], false)}, {prop: "OptUserData", name: "OptUserData", pkg: "", typ: $funcType([$Int, ptrType$9], [ptrType$9], false)}, {prop: "ArgError", name: "ArgError", pkg: "", typ: $funcType([$Int, $String], [], false)}, {prop: "TypeError", name: "TypeError", pkg: "", typ: $funcType([$Int, LValueType], [], false)}, {prop: "Where", name: "Where", pkg: "", typ: $funcType([$Int], [$String], false)}, {prop: "FindTable", name: "FindTable", pkg: "", typ: $funcType([ptrType$1, $String, $Int], [LValue], false)}, {prop: "RegisterModule", name: "RegisterModule", pkg: "", typ: $funcType([$String, mapType$5], [LValue], false)}, {prop: "SetFuncs", name: "SetFuncs", pkg: "", typ: $funcType([ptrType$1, mapType$5, sliceType$5], [ptrType$1], true)}, {prop: "NewTypeMetatable", name: "NewTypeMetatable", pkg: "", typ: $funcType([$String], [ptrType$1], false)}, {prop: "GetMetaField", name: "GetMetaField", pkg: "", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "GetTypeMetatable", name: "GetTypeMetatable", pkg: "", typ: $funcType([$String], [LValue], false)}, {prop: "CallMeta", name: "CallMeta", pkg: "", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "LoadFile", name: "LoadFile", pkg: "", typ: $funcType([$String], [ptrType$8, $error], false)}, {prop: "LoadString", name: "LoadString", pkg: "", typ: $funcType([$String], [ptrType$8, $error], false)}, {prop: "DoFile", name: "DoFile", pkg: "", typ: $funcType([$String], [$error], false)}, {prop: "DoString", name: "DoString", pkg: "", typ: $funcType([$String], [$error], false)}, {prop: "ToStringMeta", name: "ToStringMeta", pkg: "", typ: $funcType([LValue], [LValue], false)}, {prop: "PreloadModule", name: "PreloadModule", pkg: "", typ: $funcType([$String, LGFunction], [], false)}, {prop: "CheckChannel", name: "CheckChannel", pkg: "", typ: $funcType([$Int], [chanType], false)}, {prop: "OptChannel", name: "OptChannel", pkg: "", typ: $funcType([$Int, chanType], [chanType], false)}, {prop: "OpenLibs", name: "OpenLibs", pkg: "", typ: $funcType([], [], false)}, {prop: "printReg", name: "printReg", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [], false)}, {prop: "printCallStack", name: "printCallStack", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [], false)}, {prop: "closeAllUpvalues", name: "closeAllUpvalues", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [], false)}, {prop: "raiseError", name: "raiseError", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int, $String, sliceType$7], [], true)}, {prop: "findLocal", name: "findLocal", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11, $Int], [$String], false)}, {prop: "where", name: "where", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int, $Bool], [$String], false)}, {prop: "stackTrace", name: "stackTrace", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [$String], false)}, {prop: "formattedFrameFuncName", name: "formattedFrameFuncName", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11], [$String], false)}, {prop: "rawFrameFuncName", name: "rawFrameFuncName", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11], [$String], false)}, {prop: "frameFuncName", name: "frameFuncName", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11], [$String, $Bool], false)}, {prop: "isStarted", name: "isStarted", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Bool], false)}, {prop: "kill", name: "kill", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [], false)}, {prop: "indexToReg", name: "indexToReg", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [$Int], false)}, {prop: "currentLocalBase", name: "currentLocalBase", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Int], false)}, {prop: "currentEnv", name: "currentEnv", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$1], false)}, {prop: "rkValue", name: "rkValue", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [LValue], false)}, {prop: "rkString", name: "rkString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [$String], false)}, {prop: "closeUpvalues", name: "closeUpvalues", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [], false)}, {prop: "findUpvalue", name: "findUpvalue", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [ptrType$57], false)}, {prop: "metatable", name: "metatable", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, $Bool], [LValue], false)}, {prop: "metaOp1", name: "metaOp1", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "metaOp2", name: "metaOp2", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, LValue, $String], [LValue], false)}, {prop: "metaCall", name: "metaCall", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue], [ptrType$8, $Bool], false)}, {prop: "initCallFrame", name: "initCallFrame", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11], [], false)}, {prop: "pushCallFrame", name: "pushCallFrame", pkg: "github.com/yuin/gopher-lua", typ: $funcType([callFrame, LValue, $Bool], [], false)}, {prop: "callR", name: "callR", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int, $Int, $Int], [], false)}, {prop: "getField", name: "getField", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, LValue], [LValue], false)}, {prop: "getFieldString", name: "getFieldString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "setField", name: "setField", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, LValue, LValue], [], false)}, {prop: "setFieldString", name: "setFieldString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, $String, LValue], [], false)}, {prop: "Close", name: "Close", pkg: "", typ: $funcType([], [], false)}, {prop: "GetTop", name: "GetTop", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "SetTop", name: "SetTop", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "Replace", name: "Replace", pkg: "", typ: $funcType([$Int, LValue], [], false)}, {prop: "Get", name: "Get", pkg: "", typ: $funcType([$Int], [LValue], false)}, {prop: "Push", name: "Push", pkg: "", typ: $funcType([LValue], [], false)}, {prop: "Pop", name: "Pop", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "Insert", name: "Insert", pkg: "", typ: $funcType([LValue, $Int], [], false)}, {prop: "Remove", name: "Remove", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "NewTable", name: "NewTable", pkg: "", typ: $funcType([], [ptrType$1], false)}, {prop: "CreateTable", name: "CreateTable", pkg: "", typ: $funcType([$Int, $Int], [ptrType$1], false)}, {prop: "NewThread", name: "NewThread", pkg: "", typ: $funcType([], [ptrType$10], false)}, {prop: "NewUserData", name: "NewUserData", pkg: "", typ: $funcType([], [ptrType$9], false)}, {prop: "NewFunction", name: "NewFunction", pkg: "", typ: $funcType([LGFunction], [ptrType$8], false)}, {prop: "NewClosure", name: "NewClosure", pkg: "", typ: $funcType([LGFunction, sliceType$5], [ptrType$8], true)}, {prop: "ToBool", name: "ToBool", pkg: "", typ: $funcType([$Int], [$Bool], false)}, {prop: "ToInt", name: "ToInt", pkg: "", typ: $funcType([$Int], [$Int], false)}, {prop: "ToInt64", name: "ToInt64", pkg: "", typ: $funcType([$Int], [$Int64], false)}, {prop: "ToNumber", name: "ToNumber", pkg: "", typ: $funcType([$Int], [LNumber], false)}, {prop: "ToString", name: "ToString", pkg: "", typ: $funcType([$Int], [$String], false)}, {prop: "ToTable", name: "ToTable", pkg: "", typ: $funcType([$Int], [ptrType$1], false)}, {prop: "ToFunction", name: "ToFunction", pkg: "", typ: $funcType([$Int], [ptrType$8], false)}, {prop: "ToUserData", name: "ToUserData", pkg: "", typ: $funcType([$Int], [ptrType$9], false)}, {prop: "ToThread", name: "ToThread", pkg: "", typ: $funcType([$Int], [ptrType$10], false)}, {prop: "RaiseError", name: "RaiseError", pkg: "", typ: $funcType([$String, sliceType$7], [], true)}, {prop: "Error", name: "Error", pkg: "", typ: $funcType([LValue, $Int], [], false)}, {prop: "GetInfo", name: "GetInfo", pkg: "", typ: $funcType([$String, ptrType$54, LValue], [LValue, $error], false)}, {prop: "GetStack", name: "GetStack", pkg: "", typ: $funcType([$Int], [ptrType$54, $Bool], false)}, {prop: "GetLocal", name: "GetLocal", pkg: "", typ: $funcType([ptrType$54, $Int], [$String, LValue], false)}, {prop: "SetLocal", name: "SetLocal", pkg: "", typ: $funcType([ptrType$54, $Int, LValue], [$String], false)}, {prop: "GetUpvalue", name: "GetUpvalue", pkg: "", typ: $funcType([ptrType$8, $Int], [$String, LValue], false)}, {prop: "SetUpvalue", name: "SetUpvalue", pkg: "", typ: $funcType([ptrType$8, $Int, LValue], [$String], false)}, {prop: "GetFEnv", name: "GetFEnv", pkg: "", typ: $funcType([LValue], [LValue], false)}, {prop: "SetFEnv", name: "SetFEnv", pkg: "", typ: $funcType([LValue, LValue], [], false)}, {prop: "RawGet", name: "RawGet", pkg: "", typ: $funcType([ptrType$1, LValue], [LValue], false)}, {prop: "RawGetInt", name: "RawGetInt", pkg: "", typ: $funcType([ptrType$1, $Int], [LValue], false)}, {prop: "GetField", name: "GetField", pkg: "", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "GetTable", name: "GetTable", pkg: "", typ: $funcType([LValue, LValue], [LValue], false)}, {prop: "RawSet", name: "RawSet", pkg: "", typ: $funcType([ptrType$1, LValue, LValue], [], false)}, {prop: "RawSetInt", name: "RawSetInt", pkg: "", typ: $funcType([ptrType$1, $Int, LValue], [], false)}, {prop: "SetField", name: "SetField", pkg: "", typ: $funcType([LValue, $String, LValue], [], false)}, {prop: "SetTable", name: "SetTable", pkg: "", typ: $funcType([LValue, LValue, LValue], [], false)}, {prop: "ForEach", name: "ForEach", pkg: "", typ: $funcType([ptrType$1, funcType], [], false)}, {prop: "GetGlobal", name: "GetGlobal", pkg: "", typ: $funcType([$String], [LValue], false)}, {prop: "SetGlobal", name: "SetGlobal", pkg: "", typ: $funcType([$String, LValue], [], false)}, {prop: "Next", name: "Next", pkg: "", typ: $funcType([ptrType$1, LValue], [LValue, LValue], false)}, {prop: "ObjLen", name: "ObjLen", pkg: "", typ: $funcType([LValue], [$Int], false)}, {prop: "Concat", name: "Concat", pkg: "", typ: $funcType([sliceType$5], [$String], true)}, {prop: "LessThan", name: "LessThan", pkg: "", typ: $funcType([LValue, LValue], [$Bool], false)}, {prop: "Equal", name: "Equal", pkg: "", typ: $funcType([LValue, LValue], [$Bool], false)}, {prop: "RawEqual", name: "RawEqual", pkg: "", typ: $funcType([LValue, LValue], [$Bool], false)}, {prop: "Register", name: "Register", pkg: "", typ: $funcType([$String, LGFunction], [], false)}, {prop: "Load", name: "Load", pkg: "", typ: $funcType([io.Reader, $String], [ptrType$8, $error], false)}, {prop: "Call", name: "Call", pkg: "", typ: $funcType([$Int, $Int], [], false)}, {prop: "PCall", name: "PCall", pkg: "", typ: $funcType([$Int, $Int, ptrType$8], [$error], false)}, {prop: "GPCall", name: "GPCall", pkg: "", typ: $funcType([LGFunction, LValue], [$error], false)}, {prop: "CallByParam", name: "CallByParam", pkg: "", typ: $funcType([P, sliceType$5], [$error], true)}, {prop: "GetMetatable", name: "GetMetatable", pkg: "", typ: $funcType([LValue], [LValue], false)}, {prop: "SetMetatable", name: "SetMetatable", pkg: "", typ: $funcType([LValue, LValue], [], false)}, {prop: "Status", name: "Status", pkg: "", typ: $funcType([ptrType$10], [$String], false)}, {prop: "Resume", name: "Resume", pkg: "", typ: $funcType([ptrType$10, ptrType$8, sliceType$5], [ResumeState, $error, sliceType$5], true)}, {prop: "Yield", name: "Yield", pkg: "", typ: $funcType([sliceType$5], [$Int], true)}, {prop: "XMoveTo", name: "XMoveTo", pkg: "", typ: $funcType([ptrType$10, $Int], [], false)}, {prop: "SetMx", name: "SetMx", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "ToChannel", name: "ToChannel", pkg: "", typ: $funcType([$Int], [chanType], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}];
+	ptrType$10.methods = [{prop: "CheckAny", name: "CheckAny", pkg: "", typ: $funcType([$Int], [LValue], false)}, {prop: "CheckInt", name: "CheckInt", pkg: "", typ: $funcType([$Int], [$Int], false)}, {prop: "CheckInt64", name: "CheckInt64", pkg: "", typ: $funcType([$Int], [$Int64], false)}, {prop: "CheckNumber", name: "CheckNumber", pkg: "", typ: $funcType([$Int], [LNumber], false)}, {prop: "CheckString", name: "CheckString", pkg: "", typ: $funcType([$Int], [$String], false)}, {prop: "CheckBool", name: "CheckBool", pkg: "", typ: $funcType([$Int], [$Bool], false)}, {prop: "CheckTable", name: "CheckTable", pkg: "", typ: $funcType([$Int], [ptrType$1], false)}, {prop: "CheckFunction", name: "CheckFunction", pkg: "", typ: $funcType([$Int], [ptrType$8], false)}, {prop: "CheckUserData", name: "CheckUserData", pkg: "", typ: $funcType([$Int], [ptrType$9], false)}, {prop: "CheckThread", name: "CheckThread", pkg: "", typ: $funcType([$Int], [ptrType$10], false)}, {prop: "CheckType", name: "CheckType", pkg: "", typ: $funcType([$Int, LValueType], [], false)}, {prop: "CheckTypes", name: "CheckTypes", pkg: "", typ: $funcType([$Int, sliceType$8], [], true)}, {prop: "CheckOption", name: "CheckOption", pkg: "", typ: $funcType([$Int, sliceType$1], [$Int], false)}, {prop: "OptInt", name: "OptInt", pkg: "", typ: $funcType([$Int, $Int], [$Int], false)}, {prop: "OptInt64", name: "OptInt64", pkg: "", typ: $funcType([$Int, $Int64], [$Int64], false)}, {prop: "OptNumber", name: "OptNumber", pkg: "", typ: $funcType([$Int, LNumber], [LNumber], false)}, {prop: "OptString", name: "OptString", pkg: "", typ: $funcType([$Int, $String], [$String], false)}, {prop: "OptBool", name: "OptBool", pkg: "", typ: $funcType([$Int, $Bool], [$Bool], false)}, {prop: "OptTable", name: "OptTable", pkg: "", typ: $funcType([$Int, ptrType$1], [ptrType$1], false)}, {prop: "OptFunction", name: "OptFunction", pkg: "", typ: $funcType([$Int, ptrType$8], [ptrType$8], false)}, {prop: "OptUserData", name: "OptUserData", pkg: "", typ: $funcType([$Int, ptrType$9], [ptrType$9], false)}, {prop: "ArgError", name: "ArgError", pkg: "", typ: $funcType([$Int, $String], [], false)}, {prop: "TypeError", name: "TypeError", pkg: "", typ: $funcType([$Int, LValueType], [], false)}, {prop: "Where", name: "Where", pkg: "", typ: $funcType([$Int], [$String], false)}, {prop: "FindTable", name: "FindTable", pkg: "", typ: $funcType([ptrType$1, $String, $Int], [LValue], false)}, {prop: "RegisterModule", name: "RegisterModule", pkg: "", typ: $funcType([$String, mapType$5], [LValue], false)}, {prop: "SetFuncs", name: "SetFuncs", pkg: "", typ: $funcType([ptrType$1, mapType$5, sliceType$5], [ptrType$1], true)}, {prop: "NewTypeMetatable", name: "NewTypeMetatable", pkg: "", typ: $funcType([$String], [ptrType$1], false)}, {prop: "GetMetaField", name: "GetMetaField", pkg: "", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "GetTypeMetatable", name: "GetTypeMetatable", pkg: "", typ: $funcType([$String], [LValue], false)}, {prop: "CallMeta", name: "CallMeta", pkg: "", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "LoadFile", name: "LoadFile", pkg: "", typ: $funcType([$String], [ptrType$8, $error], false)}, {prop: "LoadString", name: "LoadString", pkg: "", typ: $funcType([$String], [ptrType$8, $error], false)}, {prop: "DoFile", name: "DoFile", pkg: "", typ: $funcType([$String], [$error], false)}, {prop: "DoString", name: "DoString", pkg: "", typ: $funcType([$String], [$error], false)}, {prop: "ToStringMeta", name: "ToStringMeta", pkg: "", typ: $funcType([LValue], [LValue], false)}, {prop: "PreloadModule", name: "PreloadModule", pkg: "", typ: $funcType([$String, LGFunction], [], false)}, {prop: "CheckChannel", name: "CheckChannel", pkg: "", typ: $funcType([$Int], [chanType], false)}, {prop: "OptChannel", name: "OptChannel", pkg: "", typ: $funcType([$Int, chanType], [chanType], false)}, {prop: "OpenLibs", name: "OpenLibs", pkg: "", typ: $funcType([], [], false)}, {prop: "printReg", name: "printReg", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [], false)}, {prop: "printCallStack", name: "printCallStack", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [], false)}, {prop: "closeAllUpvalues", name: "closeAllUpvalues", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [], false)}, {prop: "raiseError", name: "raiseError", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int, $String, sliceType$7], [], true)}, {prop: "findLocal", name: "findLocal", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11, $Int], [$String], false)}, {prop: "where", name: "where", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int, $Bool], [$String], false)}, {prop: "stackTrace", name: "stackTrace", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [$String], false)}, {prop: "formattedFrameFuncName", name: "formattedFrameFuncName", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11], [$String], false)}, {prop: "rawFrameFuncName", name: "rawFrameFuncName", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11], [$String], false)}, {prop: "frameFuncName", name: "frameFuncName", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11], [$String, $Bool], false)}, {prop: "isStarted", name: "isStarted", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Bool], false)}, {prop: "kill", name: "kill", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [], false)}, {prop: "indexToReg", name: "indexToReg", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [$Int], false)}, {prop: "currentLocalBase", name: "currentLocalBase", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Int], false)}, {prop: "currentEnv", name: "currentEnv", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$1], false)}, {prop: "rkValue", name: "rkValue", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [LValue], false)}, {prop: "rkString", name: "rkString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [$String], false)}, {prop: "closeUpvalues", name: "closeUpvalues", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [], false)}, {prop: "findUpvalue", name: "findUpvalue", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int], [ptrType$57], false)}, {prop: "metatable", name: "metatable", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, $Bool], [LValue], false)}, {prop: "metaOp1", name: "metaOp1", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "metaOp2", name: "metaOp2", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, LValue, $String], [LValue], false)}, {prop: "metaCall", name: "metaCall", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue], [ptrType$8, $Bool], false)}, {prop: "initCallFrame", name: "initCallFrame", pkg: "github.com/yuin/gopher-lua", typ: $funcType([ptrType$11], [], false)}, {prop: "pushCallFrame", name: "pushCallFrame", pkg: "github.com/yuin/gopher-lua", typ: $funcType([callFrame, LValue, $Bool], [], false)}, {prop: "callR", name: "callR", pkg: "github.com/yuin/gopher-lua", typ: $funcType([$Int, $Int, $Int], [], false)}, {prop: "getField", name: "getField", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, LValue], [LValue], false)}, {prop: "getFieldString", name: "getFieldString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "setField", name: "setField", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, LValue, LValue], [], false)}, {prop: "setFieldString", name: "setFieldString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([LValue, $String, LValue], [], false)}, {prop: "Close", name: "Close", pkg: "", typ: $funcType([], [], false)}, {prop: "GetTop", name: "GetTop", pkg: "", typ: $funcType([], [$Int], false)}, {prop: "SetTop", name: "SetTop", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "Replace", name: "Replace", pkg: "", typ: $funcType([$Int, LValue], [], false)}, {prop: "Get", name: "Get", pkg: "", typ: $funcType([$Int], [LValue], false)}, {prop: "Push", name: "Push", pkg: "", typ: $funcType([LValue], [], false)}, {prop: "Pop", name: "Pop", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "Insert", name: "Insert", pkg: "", typ: $funcType([LValue, $Int], [], false)}, {prop: "Remove", name: "Remove", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "NewTable", name: "NewTable", pkg: "", typ: $funcType([], [ptrType$1], false)}, {prop: "CreateTable", name: "CreateTable", pkg: "", typ: $funcType([$Int, $Int], [ptrType$1], false)}, {prop: "NewThread", name: "NewThread", pkg: "", typ: $funcType([], [ptrType$10, context.CancelFunc], false)}, {prop: "NewUserData", name: "NewUserData", pkg: "", typ: $funcType([], [ptrType$9], false)}, {prop: "NewFunction", name: "NewFunction", pkg: "", typ: $funcType([LGFunction], [ptrType$8], false)}, {prop: "NewClosure", name: "NewClosure", pkg: "", typ: $funcType([LGFunction, sliceType$5], [ptrType$8], true)}, {prop: "ToBool", name: "ToBool", pkg: "", typ: $funcType([$Int], [$Bool], false)}, {prop: "ToInt", name: "ToInt", pkg: "", typ: $funcType([$Int], [$Int], false)}, {prop: "ToInt64", name: "ToInt64", pkg: "", typ: $funcType([$Int], [$Int64], false)}, {prop: "ToNumber", name: "ToNumber", pkg: "", typ: $funcType([$Int], [LNumber], false)}, {prop: "ToString", name: "ToString", pkg: "", typ: $funcType([$Int], [$String], false)}, {prop: "ToTable", name: "ToTable", pkg: "", typ: $funcType([$Int], [ptrType$1], false)}, {prop: "ToFunction", name: "ToFunction", pkg: "", typ: $funcType([$Int], [ptrType$8], false)}, {prop: "ToUserData", name: "ToUserData", pkg: "", typ: $funcType([$Int], [ptrType$9], false)}, {prop: "ToThread", name: "ToThread", pkg: "", typ: $funcType([$Int], [ptrType$10], false)}, {prop: "RaiseError", name: "RaiseError", pkg: "", typ: $funcType([$String, sliceType$7], [], true)}, {prop: "Error", name: "Error", pkg: "", typ: $funcType([LValue, $Int], [], false)}, {prop: "GetInfo", name: "GetInfo", pkg: "", typ: $funcType([$String, ptrType$54, LValue], [LValue, $error], false)}, {prop: "GetStack", name: "GetStack", pkg: "", typ: $funcType([$Int], [ptrType$54, $Bool], false)}, {prop: "GetLocal", name: "GetLocal", pkg: "", typ: $funcType([ptrType$54, $Int], [$String, LValue], false)}, {prop: "SetLocal", name: "SetLocal", pkg: "", typ: $funcType([ptrType$54, $Int, LValue], [$String], false)}, {prop: "GetUpvalue", name: "GetUpvalue", pkg: "", typ: $funcType([ptrType$8, $Int], [$String, LValue], false)}, {prop: "SetUpvalue", name: "SetUpvalue", pkg: "", typ: $funcType([ptrType$8, $Int, LValue], [$String], false)}, {prop: "GetFEnv", name: "GetFEnv", pkg: "", typ: $funcType([LValue], [LValue], false)}, {prop: "SetFEnv", name: "SetFEnv", pkg: "", typ: $funcType([LValue, LValue], [], false)}, {prop: "RawGet", name: "RawGet", pkg: "", typ: $funcType([ptrType$1, LValue], [LValue], false)}, {prop: "RawGetInt", name: "RawGetInt", pkg: "", typ: $funcType([ptrType$1, $Int], [LValue], false)}, {prop: "GetField", name: "GetField", pkg: "", typ: $funcType([LValue, $String], [LValue], false)}, {prop: "GetTable", name: "GetTable", pkg: "", typ: $funcType([LValue, LValue], [LValue], false)}, {prop: "RawSet", name: "RawSet", pkg: "", typ: $funcType([ptrType$1, LValue, LValue], [], false)}, {prop: "RawSetInt", name: "RawSetInt", pkg: "", typ: $funcType([ptrType$1, $Int, LValue], [], false)}, {prop: "SetField", name: "SetField", pkg: "", typ: $funcType([LValue, $String, LValue], [], false)}, {prop: "SetTable", name: "SetTable", pkg: "", typ: $funcType([LValue, LValue, LValue], [], false)}, {prop: "ForEach", name: "ForEach", pkg: "", typ: $funcType([ptrType$1, funcType], [], false)}, {prop: "GetGlobal", name: "GetGlobal", pkg: "", typ: $funcType([$String], [LValue], false)}, {prop: "SetGlobal", name: "SetGlobal", pkg: "", typ: $funcType([$String, LValue], [], false)}, {prop: "Next", name: "Next", pkg: "", typ: $funcType([ptrType$1, LValue], [LValue, LValue], false)}, {prop: "ObjLen", name: "ObjLen", pkg: "", typ: $funcType([LValue], [$Int], false)}, {prop: "Concat", name: "Concat", pkg: "", typ: $funcType([sliceType$5], [$String], true)}, {prop: "LessThan", name: "LessThan", pkg: "", typ: $funcType([LValue, LValue], [$Bool], false)}, {prop: "Equal", name: "Equal", pkg: "", typ: $funcType([LValue, LValue], [$Bool], false)}, {prop: "RawEqual", name: "RawEqual", pkg: "", typ: $funcType([LValue, LValue], [$Bool], false)}, {prop: "Register", name: "Register", pkg: "", typ: $funcType([$String, LGFunction], [], false)}, {prop: "Load", name: "Load", pkg: "", typ: $funcType([io.Reader, $String], [ptrType$8, $error], false)}, {prop: "Call", name: "Call", pkg: "", typ: $funcType([$Int, $Int], [], false)}, {prop: "PCall", name: "PCall", pkg: "", typ: $funcType([$Int, $Int, ptrType$8], [$error], false)}, {prop: "GPCall", name: "GPCall", pkg: "", typ: $funcType([LGFunction, LValue], [$error], false)}, {prop: "CallByParam", name: "CallByParam", pkg: "", typ: $funcType([P, sliceType$5], [$error], true)}, {prop: "GetMetatable", name: "GetMetatable", pkg: "", typ: $funcType([LValue], [LValue], false)}, {prop: "SetMetatable", name: "SetMetatable", pkg: "", typ: $funcType([LValue, LValue], [], false)}, {prop: "Status", name: "Status", pkg: "", typ: $funcType([ptrType$10], [$String], false)}, {prop: "Resume", name: "Resume", pkg: "", typ: $funcType([ptrType$10, ptrType$8, sliceType$5], [ResumeState, $error, sliceType$5], true)}, {prop: "Yield", name: "Yield", pkg: "", typ: $funcType([sliceType$5], [$Int], true)}, {prop: "XMoveTo", name: "XMoveTo", pkg: "", typ: $funcType([ptrType$10, $Int], [], false)}, {prop: "SetMx", name: "SetMx", pkg: "", typ: $funcType([$Int], [], false)}, {prop: "SetContext", name: "SetContext", pkg: "", typ: $funcType([context.Context], [], false)}, {prop: "Context", name: "Context", pkg: "", typ: $funcType([], [context.Context], false)}, {prop: "RemoveContext", name: "RemoveContext", pkg: "", typ: $funcType([], [context.Context], false)}, {prop: "ToChannel", name: "ToChannel", pkg: "", typ: $funcType([$Int], [chanType], false)}, {prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}];
 	ptrType$9.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}];
 	LChannel.methods = [{prop: "String", name: "String", pkg: "", typ: $funcType([], [$String], false)}, {prop: "Type", name: "Type", pkg: "", typ: $funcType([], [LValueType], false)}, {prop: "assertFloat64", name: "assertFloat64", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$Float64, $Bool], false)}, {prop: "assertString", name: "assertString", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [$String, $Bool], false)}, {prop: "assertFunction", name: "assertFunction", pkg: "github.com/yuin/gopher-lua", typ: $funcType([], [ptrType$8, $Bool], false)}];
 	iface.init("github.com/yuin/gopher-lua", [{prop: "itab", name: "itab", exported: false, typ: $UnsafePointer, tag: ""}, {prop: "word", name: "word", exported: false, typ: $UnsafePointer, tag: ""}]);
 	allocator.init("github.com/yuin/gopher-lua", [{prop: "top", name: "top", exported: false, typ: $Int, tag: ""}, {prop: "size", name: "size", exported: false, typ: $Int, tag: ""}, {prop: "nptrs", name: "nptrs", exported: false, typ: sliceType$5, tag: ""}, {prop: "nheader", name: "nheader", exported: false, typ: ptrType$3, tag: ""}, {prop: "fptrs", name: "fptrs", exported: false, typ: sliceType$6, tag: ""}, {prop: "fheader", name: "fheader", exported: false, typ: ptrType$3, tag: ""}, {prop: "itabLNumber", name: "itabLNumber", exported: false, typ: $UnsafePointer, tag: ""}, {prop: "preloads", name: "preloads", exported: false, typ: arrayType$1, tag: ""}]);
 	expcontext.init("github.com/yuin/gopher-lua", [{prop: "ctype", name: "ctype", exported: false, typ: expContextType, tag: ""}, {prop: "reg", name: "reg", exported: false, typ: $Int, tag: ""}, {prop: "varargopt", name: "varargopt", exported: false, typ: $Int, tag: ""}]);
-	assigncontext.init("github.com/yuin/gopher-lua", [{prop: "ec", name: "ec", exported: false, typ: ptrType$71, tag: ""}, {prop: "keyrk", name: "keyrk", exported: false, typ: $Int, tag: ""}, {prop: "valuerk", name: "valuerk", exported: false, typ: $Int, tag: ""}, {prop: "keyks", name: "keyks", exported: false, typ: $Bool, tag: ""}, {prop: "needmove", name: "needmove", exported: false, typ: $Bool, tag: ""}]);
+	assigncontext.init("github.com/yuin/gopher-lua", [{prop: "ec", name: "ec", exported: false, typ: ptrType$73, tag: ""}, {prop: "keyrk", name: "keyrk", exported: false, typ: $Int, tag: ""}, {prop: "valuerk", name: "valuerk", exported: false, typ: $Int, tag: ""}, {prop: "keyks", name: "keyks", exported: false, typ: $Bool, tag: ""}, {prop: "needmove", name: "needmove", exported: false, typ: $Bool, tag: ""}]);
 	lblabels.init("github.com/yuin/gopher-lua", [{prop: "t", name: "t", exported: false, typ: $Int, tag: ""}, {prop: "f", name: "f", exported: false, typ: $Int, tag: ""}, {prop: "e", name: "e", exported: false, typ: $Int, tag: ""}, {prop: "b", name: "b", exported: false, typ: $Bool, tag: ""}]);
 	constLValueExpr.init("", [{prop: "ExprBase", name: "", exported: true, typ: ast.ExprBase, tag: ""}, {prop: "Value", name: "Value", exported: true, typ: LValue, tag: ""}]);
-	CompileError.init("", [{prop: "Context", name: "Context", exported: true, typ: ptrType$13, tag: ""}, {prop: "Line", name: "Line", exported: true, typ: $Int, tag: ""}, {prop: "Message", name: "Message", exported: true, typ: $String, tag: ""}]);
+	CompileError.init("github.com/yuin/gopher-lua", [{prop: "context", name: "context", exported: false, typ: ptrType$13, tag: ""}, {prop: "Line", name: "Line", exported: true, typ: $Int, tag: ""}, {prop: "Message", name: "Message", exported: true, typ: $String, tag: ""}]);
 	codeStore.init("github.com/yuin/gopher-lua", [{prop: "codes", name: "codes", exported: false, typ: sliceType$12, tag: ""}, {prop: "lines", name: "lines", exported: false, typ: sliceType$13, tag: ""}, {prop: "pc", name: "pc", exported: false, typ: $Int, tag: ""}]);
 	varNamePoolValue.init("", [{prop: "Index", name: "Index", exported: true, typ: $Int, tag: ""}, {prop: "Name", name: "Name", exported: true, typ: $String, tag: ""}]);
 	varNamePool.init("github.com/yuin/gopher-lua", [{prop: "names", name: "names", exported: false, typ: sliceType$1, tag: ""}, {prop: "offset", name: "offset", exported: false, typ: $Int, tag: ""}]);
@@ -43197,7 +43736,7 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	LFunction.init("", [{prop: "IsG", name: "IsG", exported: true, typ: $Bool, tag: ""}, {prop: "Env", name: "Env", exported: true, typ: ptrType$1, tag: ""}, {prop: "Proto", name: "Proto", exported: true, typ: ptrType$19, tag: ""}, {prop: "GFunction", name: "GFunction", exported: true, typ: LGFunction, tag: ""}, {prop: "Upvalues", name: "Upvalues", exported: true, typ: sliceType$20, tag: ""}]);
 	LGFunction.init([ptrType$10], [$Int], false);
 	Global.init("github.com/yuin/gopher-lua", [{prop: "MainThread", name: "MainThread", exported: true, typ: ptrType$10, tag: ""}, {prop: "CurrentThread", name: "CurrentThread", exported: true, typ: ptrType$10, tag: ""}, {prop: "Registry", name: "Registry", exported: true, typ: ptrType$1, tag: ""}, {prop: "Global", name: "Global", exported: true, typ: ptrType$1, tag: ""}, {prop: "builtinMts", name: "builtinMts", exported: false, typ: mapType$4, tag: ""}, {prop: "tempFiles", name: "tempFiles", exported: false, typ: sliceType$22, tag: ""}, {prop: "gccount", name: "gccount", exported: false, typ: $Int32, tag: ""}]);
-	LState.init("github.com/yuin/gopher-lua", [{prop: "G", name: "G", exported: true, typ: ptrType$65, tag: ""}, {prop: "Parent", name: "Parent", exported: true, typ: ptrType$10, tag: ""}, {prop: "Env", name: "Env", exported: true, typ: ptrType$1, tag: ""}, {prop: "Panic", name: "Panic", exported: true, typ: funcType$1, tag: ""}, {prop: "Dead", name: "Dead", exported: true, typ: $Bool, tag: ""}, {prop: "Options", name: "Options", exported: true, typ: Options, tag: ""}, {prop: "stop", name: "stop", exported: false, typ: $Int32, tag: ""}, {prop: "reg", name: "reg", exported: false, typ: ptrType$55, tag: ""}, {prop: "stack", name: "stack", exported: false, typ: ptrType$66, tag: ""}, {prop: "alloc", name: "alloc", exported: false, typ: ptrType$67, tag: ""}, {prop: "currentFrame", name: "currentFrame", exported: false, typ: ptrType$11, tag: ""}, {prop: "wrapped", name: "wrapped", exported: false, typ: $Bool, tag: ""}, {prop: "uvcache", name: "uvcache", exported: false, typ: ptrType$57, tag: ""}, {prop: "hasErrorFunc", name: "hasErrorFunc", exported: false, typ: $Bool, tag: ""}]);
+	LState.init("github.com/yuin/gopher-lua", [{prop: "G", name: "G", exported: true, typ: ptrType$65, tag: ""}, {prop: "Parent", name: "Parent", exported: true, typ: ptrType$10, tag: ""}, {prop: "Env", name: "Env", exported: true, typ: ptrType$1, tag: ""}, {prop: "Panic", name: "Panic", exported: true, typ: funcType$1, tag: ""}, {prop: "Dead", name: "Dead", exported: true, typ: $Bool, tag: ""}, {prop: "Options", name: "Options", exported: true, typ: Options, tag: ""}, {prop: "stop", name: "stop", exported: false, typ: $Int32, tag: ""}, {prop: "reg", name: "reg", exported: false, typ: ptrType$55, tag: ""}, {prop: "stack", name: "stack", exported: false, typ: ptrType$66, tag: ""}, {prop: "alloc", name: "alloc", exported: false, typ: ptrType$67, tag: ""}, {prop: "currentFrame", name: "currentFrame", exported: false, typ: ptrType$11, tag: ""}, {prop: "wrapped", name: "wrapped", exported: false, typ: $Bool, tag: ""}, {prop: "uvcache", name: "uvcache", exported: false, typ: ptrType$57, tag: ""}, {prop: "hasErrorFunc", name: "hasErrorFunc", exported: false, typ: $Bool, tag: ""}, {prop: "mainLoop", name: "mainLoop", exported: false, typ: funcType$2, tag: ""}, {prop: "ctx", name: "ctx", exported: false, typ: context.Context, tag: ""}]);
 	LUserData.init("", [{prop: "Value", name: "Value", exported: true, typ: $emptyInterface, tag: ""}, {prop: "Env", name: "Env", exported: true, typ: ptrType$1, tag: ""}, {prop: "Metatable", name: "Metatable", exported: true, typ: LValue, tag: ""}]);
 	LChannel.init(LValue, false, false);
 	instFunc.init([ptrType$10, $Uint32, ptrType$11], [$Int], false);
@@ -43210,21 +43749,22 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		$r = ast.$init(); /* */ $s = 4; case 4: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$r = parse.$init(); /* */ $s = 5; case 5: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$r = pm.$init(); /* */ $s = 6; case 6: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = io.$init(); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = ioutil.$init(); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = math.$init(); /* */ $s = 9; case 9: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = rand.$init(); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = os.$init(); /* */ $s = 11; case 11: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = exec.$init(); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = filepath.$init(); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = reflect.$init(); /* */ $s = 14; case 14: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = runtime.$init(); /* */ $s = 15; case 15: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = sort.$init(); /* */ $s = 16; case 16: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = strconv.$init(); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = strings.$init(); /* */ $s = 18; case 18: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = atomic.$init(); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = syscall.$init(); /* */ $s = 20; case 20: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = time.$init(); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = context.$init(); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = io.$init(); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = ioutil.$init(); /* */ $s = 9; case 9: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = math.$init(); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = rand.$init(); /* */ $s = 11; case 11: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = os.$init(); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = exec.$init(); /* */ $s = 13; case 13: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = filepath.$init(); /* */ $s = 14; case 14: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = reflect.$init(); /* */ $s = 15; case 15: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = runtime.$init(); /* */ $s = 16; case 16: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = sort.$init(); /* */ $s = 17; case 17: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = strconv.$init(); /* */ $s = 18; case 18: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = strings.$init(); /* */ $s = 19; case 19: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = atomic.$init(); /* */ $s = 20; case 20: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = syscall.$init(); /* */ $s = 21; case 21: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$r = time.$init(); /* */ $s = 22; case 22: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$pkg.LuaLDir = "";
 		$pkg.LuaPathDefault = "";
 		$pkg.LuaOS = "";
@@ -43248,24 +43788,24 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 		_ecnonem2 = new expcontext.ptr(6, 256, -2);
 		ecfuncdef = new expcontext.ptr(5, 256, 0);
 		opProps = new sliceType$2([new opProp.ptr("MOVE", false, true, 2, 0, 0), new opProp.ptr("MOVEN", false, true, 2, 0, 0), new opProp.ptr("LOADK", false, true, 3, 0, 1), new opProp.ptr("LOADBOOL", false, true, 1, 1, 0), new opProp.ptr("LOADNIL", false, true, 2, 0, 0), new opProp.ptr("GETUPVAL", false, true, 1, 0, 0), new opProp.ptr("GETGLOBAL", false, true, 3, 0, 1), new opProp.ptr("GETTABLE", false, true, 2, 3, 0), new opProp.ptr("GETTABLEKS", false, true, 2, 3, 0), new opProp.ptr("SETGLOBAL", false, false, 3, 0, 1), new opProp.ptr("SETUPVAL", false, false, 1, 0, 0), new opProp.ptr("SETTABLE", false, false, 3, 3, 0), new opProp.ptr("SETTABLEKS", false, false, 3, 3, 0), new opProp.ptr("NEWTABLE", false, true, 1, 1, 0), new opProp.ptr("SELF", false, true, 2, 3, 0), new opProp.ptr("ADD", false, true, 3, 3, 0), new opProp.ptr("SUB", false, true, 3, 3, 0), new opProp.ptr("MUL", false, true, 3, 3, 0), new opProp.ptr("DIV", false, true, 3, 3, 0), new opProp.ptr("MOD", false, true, 3, 3, 0), new opProp.ptr("POW", false, true, 3, 3, 0), new opProp.ptr("UNM", false, true, 2, 0, 0), new opProp.ptr("NOT", false, true, 2, 0, 0), new opProp.ptr("LEN", false, true, 2, 0, 0), new opProp.ptr("CONCAT", false, true, 2, 2, 0), new opProp.ptr("JMP", false, false, 2, 0, 2), new opProp.ptr("EQ", true, false, 3, 3, 0), new opProp.ptr("LT", true, false, 3, 3, 0), new opProp.ptr("LE", true, false, 3, 3, 0), new opProp.ptr("TEST", true, true, 2, 1, 0), new opProp.ptr("TESTSET", true, true, 2, 1, 0), new opProp.ptr("CALL", false, true, 1, 1, 0), new opProp.ptr("TAILCALL", false, true, 1, 1, 0), new opProp.ptr("RETURN", false, false, 1, 0, 0), new opProp.ptr("FORLOOP", false, true, 2, 0, 2), new opProp.ptr("FORPREP", false, true, 2, 0, 2), new opProp.ptr("TFORLOOP", true, false, 0, 1, 0), new opProp.ptr("SETLIST", false, false, 1, 1, 0), new opProp.ptr("CLOSE", false, false, 0, 0, 0), new opProp.ptr("CLOSURE", false, true, 1, 0, 1), new opProp.ptr("VARARG", false, true, 1, 0, 0), new opProp.ptr("NOP", false, false, 2, 0, 2)]);
-		cDateFlagToGo = $makeMap($Uint8.keyFor, [{ k: 97, v: "mon" }, { k: 65, v: "Monday" }, { k: 98, v: "Jan" }, { k: 66, v: "January" }, { k: 99, v: "02 Jan 06 15:04 MST" }, { k: 100, v: "02" }, { k: 70, v: "2006-01-02" }, { k: 72, v: "15" }, { k: 73, v: "03" }, { k: 109, v: "01" }, { k: 77, v: "04" }, { k: 112, v: "PM" }, { k: 80, v: "pm" }, { k: 83, v: "05" }, { k: 121, v: "06" }, { k: 89, v: "2006" }, { k: 122, v: "-0700" }, { k: 90, v: "MST" }]);
+		cDateFlagToGo = $makeMap($Uint8.keyFor, [{ k: 97, v: "mon" }, { k: 65, v: "Monday" }, { k: 98, v: "Jan" }, { k: 66, v: "January" }, { k: 99, v: "02 Jan 06 15:04 MST" }, { k: 100, v: "02" }, { k: 70, v: "2006-01-02" }, { k: 72, v: "15" }, { k: 73, v: "03" }, { k: 109, v: "01" }, { k: 77, v: "04" }, { k: 112, v: "PM" }, { k: 80, v: "pm" }, { k: 83, v: "05" }, { k: 120, v: "15/04/05" }, { k: 88, v: "15:04:05" }, { k: 121, v: "06" }, { k: 89, v: "2006" }, { k: 122, v: "-0700" }, { k: 90, v: "MST" }]);
 		lValueNames = $toNativeArray($kindString, ["nil", "boolean", "number", "string", "function", "userdata", "thread", "table", "channel"]);
 		$pkg.LNil = new LNilType.ptr();
 		debugFuncs = $makeMap($String.keyFor, [{ k: "getfenv", v: debugGetFEnv }, { k: "getinfo", v: debugGetInfo }, { k: "getlocal", v: debugGetLocal }, { k: "getmetatable", v: debugGetMetatable }, { k: "getupvalue", v: debugGetUpvalue }, { k: "setfenv", v: debugSetFEnv }, { k: "setlocal", v: debugSetLocal }, { k: "setmetatable", v: debugSetMetatable }, { k: "setupvalue", v: debugSetUpvalue }, { k: "traceback", v: debugTraceback }]);
-		mathFuncs = $makeMap($String.keyFor, [{ k: "abs", v: mathAbs }, { k: "acos", v: mathAcos }, { k: "asin", v: mathAsin }, { k: "atan", v: mathAtan }, { k: "atan2", v: mathAtan2 }, { k: "ceil", v: mathCeil }, { k: "cos", v: mathCos }, { k: "cosh", v: mathCosh }, { k: "deg", v: mathDeg }, { k: "exp", v: mathExp }, { k: "floor", v: mathFloor }, { k: "fmod", v: mathFmod }, { k: "frexp", v: mathFrexp }, { k: "ldexp", v: mathLdexp }, { k: "log", v: mathLog }, { k: "log10", v: mathLog10 }, { k: "max", v: mathMax }, { k: "min", v: mathMin }, { k: "mod", v: mathMod }, { k: "modf", v: mathModf }, { k: "pow", v: mathPow }, { k: "rad", v: mathRad }, { k: "random", v: mathRandom }, { k: "randomseed", v: mathRandomseed }, { k: "sin", v: mathSin }, { k: "sinh", v: mathSinh }, { k: "sqrt", v: mathSqrt }, { k: "tan", v: mathTan }, { k: "tanh", v: mathTanh }]);
-		$pkg.LTrue = true;
-		fileMethods = $makeMap($String.keyFor, [{ k: "__tostring", v: fileToString }, { k: "write", v: fileWrite }, { k: "close", v: fileClose }, { k: "flush", v: fileFlush }, { k: "lines", v: fileLines }, { k: "read", v: fileRead }, { k: "seek", v: fileSeek }, { k: "setvbuf", v: fileSetVBuf }]);
-		$pkg.LFalse = false;
-		channelMethods = $makeMap($String.keyFor, [{ k: "receive", v: channelReceive }, { k: "send", v: channelSend }, { k: "close", v: channelClose }]);
-		osFuncs = $makeMap($String.keyFor, [{ k: "clock", v: osClock }, { k: "difftime", v: osDiffTime }, { k: "execute", v: osExecute }, { k: "exit", v: osExit }, { k: "date", v: osDate }, { k: "getenv", v: osGetEnv }, { k: "remove", v: osRemove }, { k: "rename", v: osRename }, { k: "setenv", v: osSetEnv }, { k: "setlocale", v: osSetLocale }, { k: "time", v: osTime }, { k: "tmpname", v: osTmpname }]);
-		baseFuncs = $makeMap($String.keyFor, [{ k: "assert", v: baseAssert }, { k: "collectgarbage", v: baseCollectGarbage }, { k: "dofile", v: baseDoFile }, { k: "error", v: baseError }, { k: "getfenv", v: baseGetFEnv }, { k: "getmetatable", v: baseGetMetatable }, { k: "load", v: baseLoad }, { k: "loadfile", v: baseLoadFile }, { k: "loadstring", v: baseLoadString }, { k: "next", v: baseNext }, { k: "pcall", v: basePCall }, { k: "print", v: basePrint }, { k: "rawequal", v: baseRawEqual }, { k: "rawget", v: baseRawGet }, { k: "rawset", v: baseRawSet }, { k: "select", v: baseSelect }, { k: "_printregs", v: base_PrintRegs }, { k: "setfenv", v: baseSetFEnv }, { k: "setmetatable", v: baseSetMetatable }, { k: "tonumber", v: baseToNumber }, { k: "tostring", v: baseToString }, { k: "type", v: baseType }, { k: "unpack", v: baseUnpack }, { k: "xpcall", v: baseXPCall }, { k: "module", v: loModule }, { k: "require", v: loRequire }]);
-		channelFuncs = $makeMap($String.keyFor, [{ k: "make", v: channelMake }, { k: "select", v: channelSelect }]);
-		coFuncs = $makeMap($String.keyFor, [{ k: "create", v: coCreate }, { k: "yield", v: coYield }, { k: "resume", v: coResume }, { k: "running", v: coRunning }, { k: "status", v: coStatus }, { k: "wrap", v: coWrap }]);
-		ioFuncs = $makeMap($String.keyFor, [{ k: "close", v: ioClose }, { k: "flush", v: ioFlush }, { k: "lines", v: ioLines }, { k: "input", v: ioInput }, { k: "output", v: ioOutput }, { k: "open", v: ioOpenFile }, { k: "popen", v: ioPopen }, { k: "read", v: ioRead }, { k: "type", v: ioType }, { k: "tmpfile", v: ioTmpFile }, { k: "write", v: ioWrite }]);
 		loLoaders = new sliceType$3([loLoaderPreload, loLoaderLua]);
 		loFuncs = $makeMap($String.keyFor, [{ k: "loadlib", v: loLoadLib }, { k: "seeall", v: loSeeAll }]);
-		strFuncs = $makeMap($String.keyFor, [{ k: "byte", v: strByte }, { k: "char", v: strChar }, { k: "dump", v: strDump }, { k: "find", v: strFind }, { k: "format", v: strFormat }, { k: "gsub", v: strGsub }, { k: "len", v: strLen }, { k: "lower", v: strLower }, { k: "match", v: strMatch }, { k: "rep", v: strRep }, { k: "reverse", v: strReverse }, { k: "sub", v: strSub }, { k: "upper", v: strUpper }]);
+		mathFuncs = $makeMap($String.keyFor, [{ k: "abs", v: mathAbs }, { k: "acos", v: mathAcos }, { k: "asin", v: mathAsin }, { k: "atan", v: mathAtan }, { k: "atan2", v: mathAtan2 }, { k: "ceil", v: mathCeil }, { k: "cos", v: mathCos }, { k: "cosh", v: mathCosh }, { k: "deg", v: mathDeg }, { k: "exp", v: mathExp }, { k: "floor", v: mathFloor }, { k: "fmod", v: mathFmod }, { k: "frexp", v: mathFrexp }, { k: "ldexp", v: mathLdexp }, { k: "log", v: mathLog }, { k: "log10", v: mathLog10 }, { k: "max", v: mathMax }, { k: "min", v: mathMin }, { k: "mod", v: mathMod }, { k: "modf", v: mathModf }, { k: "pow", v: mathPow }, { k: "rad", v: mathRad }, { k: "random", v: mathRandom }, { k: "randomseed", v: mathRandomseed }, { k: "sin", v: mathSin }, { k: "sinh", v: mathSinh }, { k: "sqrt", v: mathSqrt }, { k: "tan", v: mathTan }, { k: "tanh", v: mathTanh }]);
 		tableFuncs = $makeMap($String.keyFor, [{ k: "getn", v: tableGetN }, { k: "concat", v: tableConcat }, { k: "insert", v: tableInsert }, { k: "maxn", v: tableMaxN }, { k: "remove", v: tableRemove }, { k: "sort", v: tableSort }]);
+		$pkg.LTrue = true;
+		ioFuncs = $makeMap($String.keyFor, [{ k: "close", v: ioClose }, { k: "flush", v: ioFlush }, { k: "lines", v: ioLines }, { k: "input", v: ioInput }, { k: "output", v: ioOutput }, { k: "open", v: ioOpenFile }, { k: "popen", v: ioPopen }, { k: "read", v: ioRead }, { k: "type", v: ioType }, { k: "tmpfile", v: ioTmpFile }, { k: "write", v: ioWrite }]);
+		fileMethods = $makeMap($String.keyFor, [{ k: "__tostring", v: fileToString }, { k: "write", v: fileWrite }, { k: "close", v: fileClose }, { k: "flush", v: fileFlush }, { k: "lines", v: fileLines }, { k: "read", v: fileRead }, { k: "seek", v: fileSeek }, { k: "setvbuf", v: fileSetVBuf }]);
+		$pkg.LFalse = false;
+		baseFuncs = $makeMap($String.keyFor, [{ k: "assert", v: baseAssert }, { k: "collectgarbage", v: baseCollectGarbage }, { k: "dofile", v: baseDoFile }, { k: "error", v: baseError }, { k: "getfenv", v: baseGetFEnv }, { k: "getmetatable", v: baseGetMetatable }, { k: "load", v: baseLoad }, { k: "loadfile", v: baseLoadFile }, { k: "loadstring", v: baseLoadString }, { k: "next", v: baseNext }, { k: "pcall", v: basePCall }, { k: "print", v: basePrint }, { k: "rawequal", v: baseRawEqual }, { k: "rawget", v: baseRawGet }, { k: "rawset", v: baseRawSet }, { k: "select", v: baseSelect }, { k: "_printregs", v: base_PrintRegs }, { k: "setfenv", v: baseSetFEnv }, { k: "setmetatable", v: baseSetMetatable }, { k: "tonumber", v: baseToNumber }, { k: "tostring", v: baseToString }, { k: "type", v: baseType }, { k: "unpack", v: baseUnpack }, { k: "xpcall", v: baseXPCall }, { k: "module", v: loModule }, { k: "require", v: loRequire }]);
+		channelFuncs = $makeMap($String.keyFor, [{ k: "make", v: channelMake }, { k: "select", v: channelSelect }]);
+		channelMethods = $makeMap($String.keyFor, [{ k: "receive", v: channelReceive }, { k: "send", v: channelSend }, { k: "close", v: channelClose }]);
+		osFuncs = $makeMap($String.keyFor, [{ k: "clock", v: osClock }, { k: "difftime", v: osDiffTime }, { k: "execute", v: osExecute }, { k: "exit", v: osExit }, { k: "date", v: osDate }, { k: "getenv", v: osGetEnv }, { k: "remove", v: osRemove }, { k: "rename", v: osRename }, { k: "setenv", v: osSetEnv }, { k: "setlocale", v: osSetLocale }, { k: "time", v: osTime }, { k: "tmpname", v: osTmpname }]);
+		strFuncs = $makeMap($String.keyFor, [{ k: "byte", v: strByte }, { k: "char", v: strChar }, { k: "dump", v: strDump }, { k: "find", v: strFind }, { k: "format", v: strFormat }, { k: "gsub", v: strGsub }, { k: "len", v: strLen }, { k: "lower", v: strLower }, { k: "match", v: strMatch }, { k: "rep", v: strRep }, { k: "reverse", v: strReverse }, { k: "sub", v: strSub }, { k: "upper", v: strUpper }]);
+		coFuncs = $makeMap($String.keyFor, [{ k: "create", v: coCreate }, { k: "yield", v: coYield }, { k: "resume", v: coResume }, { k: "running", v: coRunning }, { k: "status", v: coStatus }, { k: "wrap", v: coWrap }]);
 		luaLibs = new sliceType$4([new luaLib.ptr("package", OpenPackage), new luaLib.ptr("", OpenBase), new luaLib.ptr("table", OpenTable), new luaLib.ptr("io", OpenIo), new luaLib.ptr("os", OpenOs), new luaLib.ptr("string", OpenString), new luaLib.ptr("math", OpenMath), new luaLib.ptr("debug", OpenDebug), new luaLib.ptr("channel", OpenChannel), new luaLib.ptr("coroutine", OpenCoroutine)]);
 		init();
 		init$1();
@@ -43296,7 +43836,7 @@ $packages["honnef.co/go/js/console"] = (function() {
 	$pkg.$init = $init;
 	return $pkg;
 })();
-$packages["github.com/fiatjaf/luajs"] = (function() {
+$packages["github.com/fiatjaf/glua"] = (function() {
 	var $pkg = {}, $init, js, lua, console, sliceType, sliceType$1, funcType, mapType, funcType$1, ptrType, funcType$2, ptrType$1, main, lvalueFromInterface, lvalueToInterface;
 	js = $packages["github.com/gopherjs/gopherjs/js"];
 	lua = $packages["github.com/yuin/gopher-lua"];
@@ -43370,7 +43910,7 @@ $packages["github.com/fiatjaf/luajs"] = (function() {
 		}
 	};
 	lvalueFromInterface = function(L, value) {
-		var $ptr, L, _entry, _i, _keys, _ref, _ref$1, fn, iv, k, table, val, val$1, val$2, val$3, val$4, val$5, value;
+		var $ptr, L, _entry, _i, _i$1, _keys, _ref, _ref$1, _ref$2, fn, i, iv, iv$1, k, table, table$1, val, val$1, val$2, val$3, val$4, val$5, val$6, value;
 		_ref = value;
 		if ($assertType(_ref, $String, true)[1]) {
 			val = _ref.$val;
@@ -43400,9 +43940,22 @@ $packages["github.com/fiatjaf/luajs"] = (function() {
 				_i++;
 			}
 			return table;
-		} else if ($assertType(_ref, funcType$2, true)[1]) {
+		} else if ($assertType(_ref, sliceType$1, true)[1]) {
 			val$4 = _ref.$val;
-			fn = val$4;
+			table$1 = L.NewTable();
+			_ref$2 = val$4;
+			_i$1 = 0;
+			while (true) {
+				if (!(_i$1 < _ref$2.$length)) { break; }
+				i = _i$1;
+				iv$1 = ((_i$1 < 0 || _i$1 >= _ref$2.$length) ? ($throwRuntimeError("index out of range"), undefined) : _ref$2.$array[_ref$2.$offset + _i$1]);
+				table$1.RawSetInt(i, lvalueFromInterface(L, iv$1));
+				_i$1++;
+			}
+			return table$1;
+		} else if ($assertType(_ref, funcType$2, true)[1]) {
+			val$5 = _ref.$val;
+			fn = val$5;
 			return L.NewFunction((function $b(L$1) {
 				var $ptr, L$1, _r, _r$1, a, arg, args, jsreturn, $s, $r;
 				/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L$1 = $f.L$1; _r = $f._r; _r$1 = $f._r$1; a = $f.a; arg = $f.arg; args = $f.args; jsreturn = $f.jsreturn; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
@@ -43427,7 +43980,7 @@ $packages["github.com/fiatjaf/luajs"] = (function() {
 				/* */ } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.L$1 = L$1; $f._r = _r; $f._r$1 = _r$1; $f.a = a; $f.arg = arg; $f.args = args; $f.jsreturn = jsreturn; $f.$s = $s; $f.$r = $r; return $f;
 			}));
 		} else {
-			val$5 = _ref;
+			val$6 = _ref;
 			return lua.LNil;
 		}
 	};
@@ -43489,7 +44042,7 @@ $packages["github.com/fiatjaf/luajs"] = (function() {
 	return $pkg;
 })();
 $synthesizeMethods();
-var $mainPkg = $packages["github.com/fiatjaf/luajs"];
+var $mainPkg = $packages["github.com/fiatjaf/glua"];
 $packages["runtime"].$init();
 $go($mainPkg.$init, []);
 $flushConsole();
