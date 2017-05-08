@@ -28,6 +28,24 @@ glua.runWithGlobals({
 `)
 
 console.log('the result is: ', result)
+
+glua.runWithModules({
+  fooprinter: `
+local fooprinter = {}
+
+function fooprinter.print (foo)
+  print('foo value is: ', foo)
+end
+
+return fooprinter
+  `
+}, {
+  foo: 264857
+}, `
+local fooprinter = require('fooprinter')
+print('printing foo...')
+fooprinter.print(foo)
+`)
 ```
 
 ### try it now

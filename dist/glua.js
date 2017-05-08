@@ -43816,19 +43816,21 @@ $packages["github.com/yuin/gopher-lua"] = (function() {
 	return $pkg;
 })();
 $packages["github.com/fiatjaf/glua"] = (function() {
-	var $pkg = {}, $init, js, lua, sliceType, funcType, mapType, funcType$1, sliceType$1, ptrType, funcType$2, ptrType$1, main, lvalueFromInterface, lvalueToInterface;
+	var $pkg = {}, $init, js, lua, sliceType, funcType, mapType, funcType$1, mapType$1, funcType$2, sliceType$1, ptrType, funcType$3, ptrType$1, main, lvalueFromInterface, lvalueToInterface;
 	js = $packages["github.com/gopherjs/gopherjs/js"];
 	lua = $packages["github.com/yuin/gopher-lua"];
 	sliceType = $sliceType(lua.Options);
 	funcType = $funcType([$String], [], false);
 	mapType = $mapType($String, $emptyInterface);
 	funcType$1 = $funcType([mapType, $String], [], false);
+	mapType$1 = $mapType($String, $String);
+	funcType$2 = $funcType([mapType$1, mapType, $String], [], false);
 	sliceType$1 = $sliceType($emptyInterface);
 	ptrType = $ptrType(js.Object);
-	funcType$2 = $funcType([sliceType$1], [ptrType], true);
+	funcType$3 = $funcType([sliceType$1], [ptrType], true);
 	ptrType$1 = $ptrType(lua.LTable);
 	main = function() {
-		var $ptr, run, withGlobals;
+		var $ptr, run, withGlobals, withModules;
 		run = (function $b(code) {
 			var $ptr, L, _r, _r$1, code, err, $s, $deferred, $r;
 			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _r = $f._r; _r$1 = $f._r$1; code = $f.code; err = $f.err; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
@@ -43872,11 +43874,66 @@ $packages["github.com/fiatjaf/glua"] = (function() {
 			$s = -1; return;
 			/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.L = L; $f._entry = _entry; $f._i = _i; $f._keys = _keys; $f._r = _r; $f._r$1 = _r$1; $f._ref = _ref; $f.code = code; $f.err = err; $f.globals = globals; $f.name = name; $f.value = value; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
 		});
+		withModules = (function $b(modules, globals, code) {
+			var $ptr, L, _entry, _entry$1, _i, _i$1, _keys, _keys$1, _r, _r$1, _r$2, _r$3, _r$4, _ref, _ref$1, _tuple, code, code$1, err, err$1, globals, mod, moduleName, modules, name, preload, value, $s, $deferred, $r;
+			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; L = $f.L; _entry = $f._entry; _entry$1 = $f._entry$1; _i = $f._i; _i$1 = $f._i$1; _keys = $f._keys; _keys$1 = $f._keys$1; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _ref = $f._ref; _ref$1 = $f._ref$1; _tuple = $f._tuple; code = $f.code; code$1 = $f.code$1; err = $f.err; err$1 = $f.err$1; globals = $f.globals; mod = $f.mod; moduleName = $f.moduleName; modules = $f.modules; name = $f.name; preload = $f.preload; value = $f.value; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
+			_r = lua.NewState(new sliceType([])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+			L = _r;
+			$deferred.push([$methodVal(L, "Close"), []]);
+			_r$1 = L.GetField(L.Get(-10001), "package"); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+			_r$2 = L.GetField(_r$1, "preload"); /* */ $s = 3; case 3: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+			preload = _r$2;
+			_ref = modules;
+			_i = 0;
+			_keys = $keys(_ref);
+			/* while (true) { */ case 4:
+				/* if (!(_i < _keys.length)) { break; } */ if(!(_i < _keys.length)) { $s = 5; continue; }
+				_entry = _ref[_keys[_i]];
+				if (_entry === undefined) {
+					_i++;
+					/* continue; */ $s = 4; continue;
+				}
+				moduleName = _entry.k;
+				code$1 = _entry.v;
+				_r$3 = L.LoadString(code$1); /* */ $s = 6; case 6: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+				_tuple = _r$3;
+				mod = _tuple[0];
+				err = _tuple[1];
+				if (!($interfaceIsEqual(err, $ifaceNil))) {
+					$panic(err);
+				}
+				$r = L.SetField(preload, moduleName, mod); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				_i++;
+			/* } */ $s = 4; continue; case 5:
+			_ref$1 = globals;
+			_i$1 = 0;
+			_keys$1 = $keys(_ref$1);
+			/* while (true) { */ case 8:
+				/* if (!(_i$1 < _keys$1.length)) { break; } */ if(!(_i$1 < _keys$1.length)) { $s = 9; continue; }
+				_entry$1 = _ref$1[_keys$1[_i$1]];
+				if (_entry$1 === undefined) {
+					_i$1++;
+					/* continue; */ $s = 8; continue;
+				}
+				name = _entry$1.k;
+				value = _entry$1.v;
+				$r = L.SetGlobal(name, lvalueFromInterface(L, value)); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+				_i$1++;
+			/* } */ $s = 8; continue; case 9:
+			_r$4 = L.DoString(code); /* */ $s = 11; case 11: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+			err$1 = _r$4;
+			if (!($interfaceIsEqual(err$1, $ifaceNil))) {
+				$panic(err$1);
+			}
+			$s = -1; return;
+			/* */ } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.L = L; $f._entry = _entry; $f._entry$1 = _entry$1; $f._i = _i; $f._i$1 = _i$1; $f._keys = _keys; $f._keys$1 = _keys$1; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._ref = _ref; $f._ref$1 = _ref$1; $f._tuple = _tuple; $f.code = code; $f.code$1 = code$1; $f.err = err; $f.err$1 = err$1; $f.globals = globals; $f.mod = mod; $f.moduleName = moduleName; $f.modules = modules; $f.name = name; $f.preload = preload; $f.value = value; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
+		});
 		if (!($module === undefined)) {
 			$module.exports.run = $externalize(run, funcType);
 			$module.exports.runWithGlobals = $externalize(withGlobals, funcType$1);
+			$module.exports.runWithModules = $externalize(withModules, funcType$2);
 		} else {
-			$global.glua = $externalize($makeMap($String.keyFor, [{ k: "run", v: new funcType(run) }, { k: "runWithGlobals", v: new funcType$1(withGlobals) }]), mapType);
+			$global.glua = $externalize($makeMap($String.keyFor, [{ k: "run", v: new funcType(run) }, { k: "runWithGlobals", v: new funcType$1(withGlobals) }, { k: "runWithModules", v: new funcType$2(withModules) }]), mapType);
 		}
 	};
 	lvalueFromInterface = function(L, value) {
@@ -43923,7 +43980,7 @@ $packages["github.com/fiatjaf/glua"] = (function() {
 				_i$1++;
 			}
 			return table$1;
-		} else if ($assertType(_ref, funcType$2, true)[1]) {
+		} else if ($assertType(_ref, funcType$3, true)[1]) {
 			val$5 = _ref.$val;
 			fn = val$5;
 			return L.NewFunction((function $b(L$1) {

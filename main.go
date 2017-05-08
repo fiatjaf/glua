@@ -25,14 +25,37 @@ func main() {
 			panic(err)
 		}
 	}
+	withModules := func(modules map[string]string, globals map[string]interface{}, code string) {
+		L := lua.NewState()
+		defer L.Close()
+
+		preload := L.GetField(L.GetField(L.Get(lua.EnvironIndex), "package"), "preload")
+		for moduleName, code := range modules {
+			mod, err := L.LoadString(code)
+			if err != nil {
+				panic(err)
+			}
+			L.SetField(preload, moduleName, mod)
+		}
+
+		for name, value := range globals {
+			L.SetGlobal(name, lvalueFromInterface(L, value))
+		}
+
+		if err := L.DoString(code); err != nil {
+			panic(err)
+		}
+	}
 
 	if js.Module != js.Undefined {
 		js.Module.Get("exports").Set("run", run)
 		js.Module.Get("exports").Set("runWithGlobals", withGlobals)
+		js.Module.Get("exports").Set("runWithModules", withModules)
 	} else {
 		js.Global.Set("glua", map[string]interface{}{
 			"run":            run,
 			"runWithGlobals": withGlobals,
+			"runWithModules": withModules,
 		})
 	}
 }
