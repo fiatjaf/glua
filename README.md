@@ -51,3 +51,7 @@ fooprinter.print(foo)
 ### try it now
 
 Visit https://rawgit.com/fiatjaf/glua/master/try.html and use your console.
+
+### analytics stats for this repository
+
+[![](https://ght.trackingco.de/fiatjaf/glua)](https://ght.trackingco.de/)
