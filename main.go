@@ -94,12 +94,24 @@ func lvalueFromInterface(L *lua.LState, value interface{}) lua.LValue {
 			}
 
 			jsreturn := fn(args...)
-
 			if jsreturn == js.Undefined {
 				return 0
 			}
+			ret := jsreturn.Interface()
 
-			L.Push(lvalueFromInterface(L, jsreturn.Interface()))
+			if mret, ismap := ret.(map[string]interface{}); ismap {
+				if ivalues, hasmultikey := mret["_glua_multi"]; hasmultikey {
+					if values, ok := ivalues.([]interface{}); ok {
+						// return multiple values to lua
+						for _, value := range values {
+							L.Push(lvalueFromInterface(L, value))
+						}
+						return len(values)
+					}
+				}
+			}
+
+			L.Push(lvalueFromInterface(L, ret))
 			return 1
 		})
 	default:
