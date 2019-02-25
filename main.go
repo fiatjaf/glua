@@ -1,8 +1,8 @@
 package main
 
 import (
+	lua "github.com/J-J-J/goluajit"
 	"github.com/gopherjs/gopherjs/js"
-	lua "github.com/yuin/gopher-lua"
 )
 
 func main() {
@@ -77,7 +77,7 @@ func lvalueFromInterface(L *lua.LState, value interface{}) lua.LValue {
 	case []interface{}:
 		table := L.NewTable()
 		for i, iv := range val {
-			table.RawSetInt(i, lvalueFromInterface(L, iv))
+			table.RawSetInt(i+1, lvalueFromInterface(L, iv))
 		}
 		return table
 	case func(...interface{}) *js.Object:
