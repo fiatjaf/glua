@@ -1,6 +1,6 @@
 {
   "name": "glua",
-  "version": "0.4.5",
+  "version": "1.0.1",
   "description": "Full-featured Lua VM for nodejs and the browser. Based on github.com/yuin/gopher-lua.",
   "main": "dist/glua.js",
   "repository": {
@@ -8,10 +8,7 @@
     "url": "git+https://github.com/fiatjaf/glua.git"
   },
   "scripts": {
-    "clean": "rm -rf ${GOPATH}/pkg/*_js_*",
-    "build": "npm run clean && gopherjs build -o dist/glua.js",
-    "build-prod": "npm run clean && gopherjs build -m -o /tmp/glua.js && uglifyjs /tmp/glua.js -c -m > dist/glua.min.js",
-    "prepublish": "npm run build && npm run build-prod"
+    "prepublish": "make"
   },
   "keywords": "lua vm compiler gopher-lua gopherjs",
   "author": "Giovanni T. Parra",
