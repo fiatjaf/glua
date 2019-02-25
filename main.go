@@ -125,15 +125,14 @@ func lvalueToInterface(lvalue lua.LValue) interface{} {
 		size := value.Len()
 
 		// it will be either an object or an array
-		if size == 0 {
-			return make(map[string]interface{}, 0)
-		}
-
-		// otherwise we'll have to figure out
 		object := make(map[string]interface{}, size)
 		array := make([]interface{}, size)
 
 		isArray := true
+		if size == 0 {
+			isArray = false
+		}
+
 		value.ForEach(func(k lua.LValue, lv lua.LValue) {
 			v := lvalueToInterface(lv)
 

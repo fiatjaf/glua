@@ -47272,12 +47272,12 @@ $packages["github.com/fiatjaf/glua"] = (function() {
 		/* if ($assertType(_ref, ptrType$1, true)[1]) { */ case 1:
 			value = _ref.$val;
 			size[0] = value.Len();
-			if (size[0] === 0) {
-				$s = -1; return new mapType({});
-			}
 			object[0] = ((size[0] < 0 || size[0] > 2147483647) ? $throwRuntimeError("makemap: size out of range") : {});
 			array[0] = $makeSlice(sliceType$1, size[0]);
 			isArray[0] = true;
+			if (size[0] === 0) {
+				isArray[0] = false;
+			}
 			$r = value.ForEach((function(array, isArray, object, size) { return function $b(k, lv) {
 				var _key, _r, _r$1, _r$2, _tuple, k, ln, lv, ok, v, x, $s, $r;
 				/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; _key = $f._key; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; _tuple = $f._tuple; k = $f.k; ln = $f.ln; lv = $f.lv; ok = $f.ok; v = $f.v; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
