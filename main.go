@@ -110,11 +110,44 @@ func lvalueFromInterface(L *lua.LState, value interface{}) lua.LValue {
 func lvalueToInterface(lvalue lua.LValue) interface{} {
 	switch value := lvalue.(type) {
 	case *lua.LTable:
-		m := make(map[string]interface{}, value.Len())
-		value.ForEach(func(k lua.LValue, v lua.LValue) {
-			m[lua.LVAsString(k)] = lvalueToInterface(v)
+		size := value.Len()
+
+		// it will be either an object or an array
+		if size == 0 {
+			return make(map[string]interface{}, 0)
+		}
+
+		// otherwise we'll have to figure out
+		object := make(map[string]interface{}, size)
+		array := make([]interface{}, size)
+
+		isArray := true
+		value.ForEach(func(k lua.LValue, lv lua.LValue) {
+			v := lvalueToInterface(lv)
+
+			if isArray {
+				ln, ok := k.(lua.LNumber)
+				if !ok || float64(int(ln)) != float64(ln) {
+					// has a non-int key, so not an array
+					isArray = false
+				} else if ln == 0 || int(ln) > size /* because lua arrays are 1-based */ {
+					// int out of the allowed range, so not an array
+					isArray = false
+				} else {
+					// keep storing everything in the array
+					array[int(ln)-1 /* because lua arrays are 1-based */] = v
+				}
+			}
+
+			// if in the last key we discover this isn't an array we already have all values
+			object[lua.LVAsString(k)] = lvalueToInterface(lv)
 		})
-		return m
+
+		if isArray {
+			return array
+		} else {
+			return object
+		}
 	case lua.LNumber:
 		return float64(value)
 	case lua.LString:
